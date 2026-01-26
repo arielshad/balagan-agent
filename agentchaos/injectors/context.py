@@ -222,7 +222,7 @@ class ContextCorruptionInjector(BaseInjector):
                 return "\ufeff" + data
             elif corruption == "latin-1-artifacts":
                 # Add some common encoding artifacts
-                artifacts = ["Ã©", "Ã¨", "Ã ", "â€™", "â€""]
+                artifacts = ["\u00e9", "\u00e8", "\u00e0", "\u2019", "\u2014"]
                 for _ in range(3):
                     pos = self._rng.randint(0, max(0, len(data) - 1))
                     data = data[:pos] + self._rng.choice(artifacts) + data[pos:]

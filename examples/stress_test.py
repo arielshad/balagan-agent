@@ -71,8 +71,8 @@ def run_stress_test():
     for level, data in results["levels"].items():
         print(
             f"{level:<15} "
-            f"{data['pass_rate']:.1%:<15} "
-            f"{data['avg_success_rate']:.1%:<15} "
+            f"{data['pass_rate']:<15.1%} "
+            f"{data['avg_success_rate']:<15.1%} "
             f"{data['avg_duration_seconds']:.3f}s"
         )
 

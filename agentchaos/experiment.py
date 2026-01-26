@@ -170,6 +170,7 @@ class Experiment:
         self._operations: list[dict[str, Any]] = []
         self._errors: list[dict[str, Any]] = []
         self._consecutive_failures = 0
+        self._cached_result: Optional[ExperimentResult] = None
 
         # Metrics accumulators
         self._metrics: dict[str, list[float]] = {
@@ -256,6 +257,10 @@ class Experiment:
 
     def complete(self) -> ExperimentResult:
         """Complete the experiment and return results."""
+        # Return cached result if already completed
+        if self._cached_result is not None:
+            return self._cached_result
+
         if self.status == ExperimentStatus.ABORTED:
             pass  # Already ended
         elif self.status != ExperimentStatus.RUNNING:
@@ -277,7 +282,7 @@ class Experiment:
                 fault_type = op["fault_injected"]
                 faults_by_type[fault_type] = faults_by_type.get(fault_type, 0) + 1
 
-        return ExperimentResult(
+        result = ExperimentResult(
             experiment_id=self.id,
             config=self.config,
             status=self.status,
@@ -293,6 +298,8 @@ class Experiment:
             metrics=dict(self._metrics),
             errors=self._errors.copy(),
         )
+        self._cached_result = result
+        return result
 
     def _record_event(self, event_type: str, details: dict[str, Any]):
         """Record an event."""

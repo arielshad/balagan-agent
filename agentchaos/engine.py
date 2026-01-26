@@ -302,7 +302,9 @@ class ChaosEngine:
                 pass
             result = exp.result
         """
-        config = ExperimentConfig(name=name, chaos_level=self.chaos_level, **config_kwargs)
+        # Use provided chaos_level or fall back to engine's default
+        chaos_level = config_kwargs.pop("chaos_level", self.chaos_level)
+        config = ExperimentConfig(name=name, chaos_level=chaos_level, **config_kwargs)
         return ExperimentContextManager(self, config)
 
     def start_experiment(self, config: ExperimentConfig) -> Experiment:
