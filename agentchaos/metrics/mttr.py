@@ -1,9 +1,9 @@
 """Mean Time To Recovery (MTTR) calculation for AI agents."""
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
-import time
 import statistics
+import time
+from dataclasses import dataclass
+from typing import Any, Optional
 
 
 @dataclass

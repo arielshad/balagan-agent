@@ -1,11 +1,11 @@
 """Base classes for fault injectors."""
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
-from enum import Enum
 import random
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Optional
 
 
 class FaultType(Enum):

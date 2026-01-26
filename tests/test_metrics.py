@@ -1,6 +1,5 @@
 """Tests for metrics collection."""
 
-import pytest
 import time
 
 from agentchaos.metrics import (
@@ -234,7 +233,8 @@ class TestReliabilityScorer:
 
         report = scorer.calculate_score()
         assert report.availability == 0.8
-        assert report.grade == ReliabilityGrade.ONE_NINE
+        # 80% availability is below 90%, so grade should be BELOW_90
+        assert report.grade == ReliabilityGrade.BELOW_90
 
     def test_error_budget(self):
         scorer = ReliabilityScorer(slos={"availability": 0.99})

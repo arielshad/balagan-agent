@@ -15,9 +15,9 @@ __version__ = "0.1.0"
 
 from .engine import ChaosEngine
 from .experiment import Experiment, ExperimentConfig
-from .wrapper import AgentWrapper, ToolProxy
-from .runner import ExperimentRunner
 from .reporting import ReportGenerator
+from .runner import ExperimentRunner
+from .wrapper import AgentWrapper, ToolProxy
 
 __all__ = [
     "ChaosEngine",

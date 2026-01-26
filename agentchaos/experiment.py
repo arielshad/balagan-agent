@@ -1,10 +1,10 @@
 """Experiment definitions for chaos engineering."""
 
-from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
-from enum import Enum
 import time
 import uuid
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Optional
 
 
 class ExperimentStatus(Enum):

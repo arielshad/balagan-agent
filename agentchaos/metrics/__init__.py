@@ -3,7 +3,7 @@
 from .collector import MetricsCollector
 from .mttr import MTTRCalculator
 from .recovery import RecoveryQualityAnalyzer
-from .reliability import ReliabilityScorer, ReliabilityGrade
+from .reliability import ReliabilityGrade, ReliabilityScorer
 
 __all__ = [
     "MetricsCollector",

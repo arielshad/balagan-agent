@@ -1,18 +1,17 @@
 """Agent wrapper and tool proxy for chaos injection."""
 
-from typing import Any, Callable, Optional, Protocol, TypeVar
-from dataclasses import dataclass, field
-import time
 import functools
-import asyncio
+import time
+from dataclasses import dataclass
+from typing import Any, Callable, Optional, Protocol, TypeVar
 
 from .injectors import (
     BaseInjector,
-    ToolFailureInjector,
+    BudgetExhaustionInjector,
+    ContextCorruptionInjector,
     DelayInjector,
     HallucinationInjector,
-    ContextCorruptionInjector,
-    BudgetExhaustionInjector,
+    ToolFailureInjector,
 )
 from .metrics import MetricsCollector, MTTRCalculator
 
@@ -373,11 +372,11 @@ class AgentWrapper:
         enable_budget_exhaustion: bool = True,
     ):
         """Configure chaos injection for all tools."""
-        from .injectors.tool_failure import ToolFailureConfig
+        from .injectors.budget import BudgetExhaustionConfig
+        from .injectors.context import ContextCorruptionConfig
         from .injectors.delay import DelayConfig
         from .injectors.hallucination import HallucinationConfig
-        from .injectors.context import ContextCorruptionConfig
-        from .injectors.budget import BudgetExhaustionConfig
+        from .injectors.tool_failure import ToolFailureConfig
 
         self._injectors.clear()
         base_prob = 0.1 * chaos_level
@@ -497,8 +496,8 @@ def chaos_tool(
             return f"Result: {query}"
     """
     def decorator(func: T) -> T:
-        from .injectors.tool_failure import ToolFailureConfig
         from .injectors.delay import DelayConfig
+        from .injectors.tool_failure import ToolFailureConfig
 
         proxy = ToolProxy(
             func,

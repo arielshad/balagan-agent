@@ -1,9 +1,9 @@
 """Metrics collection for chaos experiments."""
 
+import statistics
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
-import time
-import statistics
 
 
 @dataclass

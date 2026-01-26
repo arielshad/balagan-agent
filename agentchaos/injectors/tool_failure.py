@@ -1,11 +1,10 @@
 """Tool failure injection for chaos testing."""
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from enum import Enum
-import random
+from typing import Any, Optional
 
-from .base import BaseInjector, InjectorConfig, FaultType
+from .base import BaseInjector, FaultType, InjectorConfig
 
 
 class FailureMode(Enum):

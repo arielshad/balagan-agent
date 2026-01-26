@@ -3,10 +3,10 @@
 import asyncio
 import time
 from dataclasses import dataclass
-from typing import Any, Optional
 from enum import Enum
+from typing import Any, Optional
 
-from .base import BaseInjector, InjectorConfig, FaultType
+from .base import BaseInjector, FaultType, InjectorConfig
 
 
 class DelayPattern(Enum):

@@ -1,6 +1,5 @@
 """Tests for the chaos engine."""
 
-import pytest
 
 from agentchaos import ChaosEngine
 from agentchaos.experiment import ExperimentConfig, ExperimentStatus

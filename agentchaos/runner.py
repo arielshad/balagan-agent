@@ -1,20 +1,19 @@
 """Experiment runner for chaos testing."""
 
-from typing import Any, Callable, Optional
-from dataclasses import dataclass, field
-import time
 import json
-from pathlib import Path
+import time
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from .engine import ChaosEngine
-from .experiment import Experiment, ExperimentConfig, ExperimentResult
-from .wrapper import AgentWrapper
+from .experiment import ExperimentResult
 from .metrics import (
     MetricsCollector,
     MTTRCalculator,
     RecoveryQualityAnalyzer,
     ReliabilityScorer,
 )
+from .wrapper import AgentWrapper
 
 
 @dataclass
@@ -113,13 +112,6 @@ class ExperimentRunner:
             chaos_config["chaos_level"] = chaos_level
 
         self.agent_wrapper.configure_chaos(**chaos_config)
-
-        # Create experiment
-        exp_config = ExperimentConfig(
-            name=scenario.name,
-            description=scenario.description,
-            **chaos_config,
-        )
 
         failure_reason = None
         passed = True

@@ -1,11 +1,10 @@
 """Hallucination injection for chaos testing AI agents."""
 
-import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from enum import Enum
+from typing import Any, Optional
 
-from .base import BaseInjector, InjectorConfig, FaultType
+from .base import BaseInjector, FaultType, InjectorConfig
 
 
 class HallucinationType(Enum):

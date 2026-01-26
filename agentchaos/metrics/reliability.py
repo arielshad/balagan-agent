@@ -1,10 +1,9 @@
 """Reliability scoring for AI agents."""
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from enum import Enum
 import statistics
-import math
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional
 
 
 class ReliabilityGrade(Enum):

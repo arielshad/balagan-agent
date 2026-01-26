@@ -1,9 +1,9 @@
 """Recovery quality analysis for AI agents."""
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from enum import Enum
 import statistics
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Optional
 
 
 class RecoveryQuality(Enum):
@@ -149,7 +149,7 @@ class RecoveryQualityAnalyzer:
             return 1.0
 
         # Type mismatch
-        if type(expected) != type(actual):
+        if type(expected) is not type(actual):
             return 0.2
 
         # Partial correctness for collections

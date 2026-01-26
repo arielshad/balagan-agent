@@ -5,12 +5,10 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 from . import __version__
-from .engine import ChaosEngine
-from .runner import ExperimentRunner, Scenario, scenario
 from .reporting import ReportGenerator
+from .runner import ExperimentRunner, Scenario, scenario
 
 
 def main():

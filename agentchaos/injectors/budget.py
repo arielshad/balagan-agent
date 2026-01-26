@@ -1,11 +1,11 @@
 """Budget exhaustion injection for chaos testing AI agents."""
 
-from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
-from enum import Enum
 import time
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional
 
-from .base import BaseInjector, InjectorConfig, FaultType
+from .base import BaseInjector, FaultType, InjectorConfig
 
 
 class BudgetType(Enum):
