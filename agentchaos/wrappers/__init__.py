@@ -2,6 +2,12 @@
 
 from .autogen import AutoGenFunctionProxy, AutoGenMultiAgentWrapper, AutoGenWrapper
 from .crewai import CrewAIToolProxy, CrewAIWrapper
+from .langchain import (
+    ChaosCallbackHandler,
+    LangChainAgentWrapper,
+    LangChainChainWrapper,
+    LangChainToolProxy,
+)
 
 __all__ = [
     "CrewAIWrapper",
@@ -9,4 +15,8 @@ __all__ = [
     "AutoGenWrapper",
     "AutoGenFunctionProxy",
     "AutoGenMultiAgentWrapper",
+    "LangChainAgentWrapper",
+    "LangChainToolProxy",
+    "LangChainChainWrapper",
+    "ChaosCallbackHandler",
 ]

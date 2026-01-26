@@ -54,9 +54,16 @@ autogen = [
     "pyautogen>=0.2.0",
 ]
 
+langchain = [
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+]
+
 all-wrappers = [
     "crewai>=0.28.0",
     "pyautogen>=0.2.0",
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
 ]
 
 [project.scripts]
