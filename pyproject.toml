@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentchaos"
+version = "0.1.0"
+description = "Chaos engineering framework for AI agents - stress-test agent reliability"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "AgentChaos Contributors" }
+]
+keywords = [
+    "ai",
+    "agents",
+    "chaos-engineering",
+    "testing",
+    "reliability",
+    "llm",
+    "stress-testing",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
+    "pytest-bdd>=7.0",
+    "black>=23.0",
+    "ruff>=0.1",
+    "mypy>=1.0",
+]
+
+# Optional dependencies for specific agent wrappers
+crewai = [
+    "crewai>=0.28.0",
+]
+
+autogen = [
+    "pyautogen>=0.2.0",
+]
+
+langchain = [
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+]
+
+all-wrappers = [
+    "crewai>=0.28.0",
+    "pyautogen>=0.2.0",
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+]
+
+[project.scripts]
+agentchaos = "agentchaos.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/agentchaos/agentchaos"
+Documentation = "https://github.com/agentchaos/agentchaos#readme"
+Repository = "https://github.com/agentchaos/agentchaos"
+Issues = "https://github.com/agentchaos/agentchaos/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agentchaos"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501", "N806", "N818"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
