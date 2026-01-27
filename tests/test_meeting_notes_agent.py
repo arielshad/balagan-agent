@@ -3,8 +3,6 @@
 TDD Step 1: Write failing tests first, then implement.
 """
 
-import pytest
-
 
 class TestSummarizerAgent:
     """Tests for the Summarizer Agent that cleans notes into bullet points."""
@@ -76,7 +74,7 @@ class TestTaskExtractorAgent:
             assert item.due_date
 
     def test_extractor_guesses_due_date_when_missing(self):
-        from examples.meeting_notes_agent import ActionItem, TaskExtractorAgent
+        from examples.meeting_notes_agent import TaskExtractorAgent
 
         agent = TaskExtractorAgent()
         bullets = ["Sarah will fix the login bug"]
