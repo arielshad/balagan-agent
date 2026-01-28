@@ -165,18 +165,10 @@ class TestRecoveryQualityAnalyzer:
         analyzer = RecoveryQualityAnalyzer()
 
         # Good recovery
-        analyzer.assess_recovery(
-            "op1", "error",
-            {"a": 1}, {"a": 1},
-            100, 120, 1
-        )
+        analyzer.assess_recovery("op1", "error", {"a": 1}, {"a": 1}, 100, 120, 1)
 
         # Poor recovery
-        analyzer.assess_recovery(
-            "op2", "timeout",
-            {"a": 1}, None,
-            100, 1000, 5
-        )
+        analyzer.assess_recovery("op2", "timeout", {"a": 1}, None, 100, 1000, 5)
 
         summary = analyzer.get_summary()
         assert summary["total_assessments"] == 2
@@ -187,16 +179,12 @@ class TestRecoveryQualityAnalyzer:
         # Multiple assessments for same operation
         for _ in range(3):
             analyzer.assess_recovery(
-                "flaky_op", "error",
-                {"a": 1}, {"a": 2},  # Wrong output
-                100, 500, 3
+                "flaky_op", "error", {"a": 1}, {"a": 2}, 100, 500, 3  # Wrong output
             )
 
         for _ in range(3):
             analyzer.assess_recovery(
-                "stable_op", "error",
-                {"a": 1}, {"a": 1},  # Correct output
-                100, 100, 0
+                "stable_op", "error", {"a": 1}, {"a": 1}, 100, 100, 0  # Correct output
             )
 
         weak = analyzer.get_weakest_areas(top_n=1)

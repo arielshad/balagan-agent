@@ -4,7 +4,6 @@ These tests simulate complete workflows using AutoGen with chaos injection,
 using mocks to avoid the need for actual API tokens.
 """
 
-
 import pytest
 
 
@@ -99,9 +98,7 @@ class TestAutoGenE2EWorkflow:
         )
         user_proxy = MockUserProxy(name="user")
 
-        wrapper = AutoGenWrapper(
-            assistant, user_proxy=user_proxy, chaos_level=0.0
-        )
+        wrapper = AutoGenWrapper(assistant, user_proxy=user_proxy, chaos_level=0.0)
 
         # Execute conversation
         result = wrapper.initiate_chat(
@@ -163,9 +160,7 @@ class TestAutoGenE2EWorkflow:
         wrapper = AutoGenWrapper(assistant, chaos_level=0.0)
 
         # Add failure injector
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1))
         wrapper.add_injector(injector, functions=["api_call"])
 
         # Verify injector is attached
@@ -273,15 +268,9 @@ class TestAutoGenE2EWorkflow:
         wrapper = AutoGenMultiAgentWrapper([agent1, agent2], chaos_level=0.0)
 
         # Simulate activity on both agents
-        wrapper.get_agent_wrapper("agent1").generate_reply(
-            [{"role": "user", "content": "hi"}]
-        )
-        wrapper.get_agent_wrapper("agent2").generate_reply(
-            [{"role": "user", "content": "hello"}]
-        )
-        wrapper.get_agent_wrapper("agent1").generate_reply(
-            [{"role": "user", "content": "bye"}]
-        )
+        wrapper.get_agent_wrapper("agent1").generate_reply([{"role": "user", "content": "hi"}])
+        wrapper.get_agent_wrapper("agent2").generate_reply([{"role": "user", "content": "hello"}])
+        wrapper.get_agent_wrapper("agent1").generate_reply([{"role": "user", "content": "bye"}])
 
         metrics = wrapper.get_aggregate_metrics()
         assert metrics["total_replies"] == 3

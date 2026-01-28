@@ -369,14 +369,10 @@ class CrewAIWrapper:
         base_prob = 0.1 * chaos_level
 
         if enable_tool_failures:
-            self._injectors.append(
-                ToolFailureInjector(ToolFailureConfig(probability=base_prob))
-            )
+            self._injectors.append(ToolFailureInjector(ToolFailureConfig(probability=base_prob)))
 
         if enable_delays:
-            self._injectors.append(
-                DelayInjector(DelayConfig(probability=base_prob * 2))
-            )
+            self._injectors.append(DelayInjector(DelayConfig(probability=base_prob * 2)))
 
         if enable_hallucinations:
             self._injectors.append(
@@ -399,9 +395,7 @@ class CrewAIWrapper:
             for injector in self._injectors:
                 proxy.add_injector(injector)
 
-    def add_injector(
-        self, injector: BaseInjector, tools: Optional[list[str]] = None
-    ):
+    def add_injector(self, injector: BaseInjector, tools: Optional[list[str]] = None):
         """
         Add a custom injector to specific tools or all tools.
 

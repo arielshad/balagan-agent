@@ -160,7 +160,10 @@ class BudgetExhaustionInjector(BaseInjector):
     def _check_constraint(self, constraint: BudgetConstraint, amount: float) -> tuple[bool, str]:
         """Check if a constraint would be exceeded."""
         if constraint.current + amount > constraint.limit:
-            return False, f"{constraint.budget_type.value} exceeded: {constraint.current + amount:.2f} > {constraint.limit:.2f}"
+            return (
+                False,
+                f"{constraint.budget_type.value} exceeded: {constraint.current + amount:.2f} > {constraint.limit:.2f}",
+            )
         return True, ""
 
     def get_budget_status(self) -> dict[str, Any]:
@@ -194,10 +197,7 @@ class BudgetExhaustionInjector(BaseInjector):
 
         data = context.get("data", context.get("input", ""))
         estimated_tokens = self._estimate_tokens(data)
-        estimated_cost = (
-            estimated_tokens * self.config.cost_per_token +
-            self.config.cost_per_call
-        )
+        estimated_cost = estimated_tokens * self.config.cost_per_token + self.config.cost_per_call
 
         # Update and check each constraint
         for budget_type, constraint in self._constraints.items():
@@ -212,7 +212,9 @@ class BudgetExhaustionInjector(BaseInjector):
             elif budget_type == BudgetType.TIME_LIMIT:
                 constraint.current = time.time() - self._start_time
                 if constraint.is_exhausted:
-                    violations.append((budget_type, f"Time limit exceeded: {constraint.current:.1f}s"))
+                    violations.append(
+                        (budget_type, f"Time limit exceeded: {constraint.current:.1f}s")
+                    )
 
             elif budget_type == BudgetType.COST_LIMIT:
                 ok, msg = self._check_constraint(constraint, estimated_cost)
@@ -231,7 +233,9 @@ class BudgetExhaustionInjector(BaseInjector):
             elif budget_type == BudgetType.RATE_LIMIT:
                 constraint.current = self._get_rate_limit_usage()
                 if constraint.current >= constraint.limit:
-                    violations.append((budget_type, f"Rate limit exceeded: {constraint.current}/min"))
+                    violations.append(
+                        (budget_type, f"Rate limit exceeded: {constraint.current}/min")
+                    )
                 else:
                     self._call_timestamps.append(time.time())
 
@@ -308,14 +312,16 @@ class BudgetTracker:
         budget = self._budgets[name]
         success = budget.consume(amount)
 
-        self._history.append({
-            "budget": name,
-            "amount": amount,
-            "success": success,
-            "current": budget.current,
-            "remaining": budget.remaining,
-            "timestamp": time.time(),
-        })
+        self._history.append(
+            {
+                "budget": name,
+                "amount": amount,
+                "success": success,
+                "current": budget.current,
+                "remaining": budget.remaining,
+                "timestamp": time.time(),
+            }
+        )
 
         return success
 

@@ -6,7 +6,7 @@ This example demonstrates how to run stress tests
 to find the breaking point of an agent.
 """
 
-from balaganagent import AgentWrapper, ExperimentRunner
+from balaganagent import ExperimentRunner
 from balaganagent.runner import scenario
 
 
@@ -135,7 +135,7 @@ def run_endurance_test():
 
     # Print summary
     total_passed = sum(results)
-    print(f"\nENDURANCE TEST RESULTS")
+    print("\nENDURANCE TEST RESULTS")
     print("-" * 40)
     print(f"Total Iterations: {len(results)}")
     print(f"Passed: {total_passed}")
@@ -151,10 +151,10 @@ def run_endurance_test():
     second_rate = sum(second_half) / len(second_half)
 
     if second_rate < first_rate * 0.9:
-        print(f"\n⚠️  Performance degradation detected!")
+        print("\n⚠️  Performance degradation detected!")
         print(f"   First half: {first_rate:.1%}, Second half: {second_rate:.1%}")
     else:
-        print(f"\n✓ No significant performance degradation detected.")
+        print("\n✓ No significant performance degradation detected.")
 
 
 if __name__ == "__main__":

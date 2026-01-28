@@ -157,16 +157,11 @@ class MTTRCalculator:
                     by_op[event.operation_name] = []
                 by_op[event.operation_name].append(event.time_to_recover)
 
-        return {
-            op: statistics.mean(times) if times else 0.0
-            for op, times in by_op.items()
-        }
+        return {op: statistics.mean(times) if times else 0.0 for op, times in by_op.items()}
 
     def calculate_mttr_percentiles(self) -> dict[str, float]:
         """Calculate MTTR percentiles."""
-        recovery_times = sorted([
-            e.time_to_recover for e in self._recovery_events if e.success
-        ])
+        recovery_times = sorted([e.time_to_recover for e in self._recovery_events if e.success])
 
         if not recovery_times:
             return {"p50": 0.0, "p90": 0.0, "p95": 0.0, "p99": 0.0}

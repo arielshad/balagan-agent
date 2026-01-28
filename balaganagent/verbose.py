@@ -3,7 +3,6 @@
 import sys
 import time
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Any, Optional
 
 
@@ -148,7 +147,10 @@ class VerboseLogger:
             return
 
         status = "✓ successful" if success else "✗ failed"
-        self.log(f"🔄 Recovery {status} for {tool_name} after {retries} retries", "green" if success else "red")
+        self.log(
+            f"🔄 Recovery {status} for {tool_name} after {retries} retries",
+            "green" if success else "red",
+        )
 
     def experiment_start(self, name: str, chaos_level: float):
         """Log experiment start."""

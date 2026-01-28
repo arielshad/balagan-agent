@@ -9,9 +9,9 @@ This example demonstrates how to:
 4. Generate reliability reports
 """
 
-from balaganagent import ChaosEngine, AgentWrapper, ExperimentRunner
-from balaganagent.runner import scenario
+from balaganagent import AgentWrapper, ChaosEngine, ExperimentRunner
 from balaganagent.reporting import ReportGenerator
+from balaganagent.runner import scenario
 
 
 # Define a simple agent with tools
@@ -165,7 +165,7 @@ def example_chaos_engine():
 
     # Get results
     result = engine.get_experiment_results()[-1]
-    print(f"\nExperiment Results:")
+    print("\nExperiment Results:")
     print(f"  Total Operations: {result.total_operations}")
     print(f"  Successful: {result.successful_operations}")
     print(f"  Failed: {result.failed_operations}")

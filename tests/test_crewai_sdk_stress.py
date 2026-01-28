@@ -7,7 +7,6 @@ calling the wrapped tools directly — this exercises the exact same
 chaos-injection path that a real crew execution would hit.
 """
 
-import os
 
 import pytest
 
@@ -103,9 +102,7 @@ class TestCrewAISDKStressToolFailures:
         from balaganagent.injectors import ToolFailureInjector
         from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1000)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1000))
         research_crew.add_injector(injector)
 
         failures = 0
@@ -122,9 +119,7 @@ class TestCrewAISDKStressToolFailures:
         from balaganagent.injectors import ToolFailureInjector
         from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1000)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1000))
         research_crew.add_injector(injector)
 
         for _ in range(10):
@@ -133,9 +128,7 @@ class TestCrewAISDKStressToolFailures:
         metrics = research_crew.get_metrics()
         tool_metrics = metrics["tools"]
         # At least one tool should have recorded calls
-        total_calls = sum(
-            t.get("latency", {}).get("count", 0) for t in tool_metrics.values()
-        )
+        total_calls = sum(t.get("latency", {}).get("count", 0) for t in tool_metrics.values())
         assert total_calls > 0
 
 
@@ -146,9 +139,7 @@ class TestCrewAISDKStressDelays:
         from balaganagent.injectors import DelayInjector
         from balaganagent.injectors.delay import DelayConfig
 
-        injector = DelayInjector(
-            DelayConfig(probability=1.0, min_delay_ms=1, max_delay_ms=2)
-        )
+        injector = DelayInjector(DelayConfig(probability=1.0, min_delay_ms=1, max_delay_ms=2))
         research_crew.add_injector(injector)
 
         results = _call_all_tools(research_crew, "delay test")

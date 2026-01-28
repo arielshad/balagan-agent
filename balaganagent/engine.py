@@ -5,7 +5,6 @@ import time
 from typing import Any, Callable, Optional
 
 from .experiment import Experiment, ExperimentConfig, ExperimentResult
-from .verbose import get_logger
 from .injectors import (
     BaseInjector,
     BudgetExhaustionInjector,
@@ -19,6 +18,7 @@ from .injectors.context import ContextCorruptionConfig
 from .injectors.delay import DelayConfig
 from .injectors.hallucination import HallucinationConfig
 from .injectors.tool_failure import ToolFailureConfig
+from .verbose import get_logger
 
 
 class ChaosEngine:
@@ -82,15 +82,21 @@ class ChaosEngine:
         )
 
         self._injectors["hallucination"] = HallucinationInjector(
-            HallucinationConfig(probability=base_probability * 0.5, seed=self._rng.randint(0, 2**31))
+            HallucinationConfig(
+                probability=base_probability * 0.5, seed=self._rng.randint(0, 2**31)
+            )
         )
 
         self._injectors["context_corruption"] = ContextCorruptionInjector(
-            ContextCorruptionConfig(probability=base_probability * 0.3, seed=self._rng.randint(0, 2**31))
+            ContextCorruptionConfig(
+                probability=base_probability * 0.3, seed=self._rng.randint(0, 2**31)
+            )
         )
 
         self._injectors["budget_exhaustion"] = BudgetExhaustionInjector(
-            BudgetExhaustionConfig(probability=1.0, seed=self._rng.randint(0, 2**31))  # Always check budgets
+            BudgetExhaustionConfig(
+                probability=1.0, seed=self._rng.randint(0, 2**31)
+            )  # Always check budgets
         )
 
     def configure(
@@ -118,10 +124,14 @@ class ChaosEngine:
             self._injectors["hallucination"] = HallucinationInjector(hallucination_config)
 
         if context_corruption_config:
-            self._injectors["context_corruption"] = ContextCorruptionInjector(context_corruption_config)
+            self._injectors["context_corruption"] = ContextCorruptionInjector(
+                context_corruption_config
+            )
 
         if budget_exhaustion_config:
-            self._injectors["budget_exhaustion"] = BudgetExhaustionInjector(budget_exhaustion_config)
+            self._injectors["budget_exhaustion"] = BudgetExhaustionInjector(
+                budget_exhaustion_config
+            )
 
     def add_injector(self, name: str, injector: BaseInjector):
         """Add a custom injector."""

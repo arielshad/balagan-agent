@@ -20,8 +20,7 @@ from .verbose import get_logger
 class ToolProtocol(Protocol):
     """Protocol for tool functions."""
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 T = TypeVar("T", bound=ToolProtocol)
@@ -411,29 +410,25 @@ class AgentWrapper:
         base_prob = 0.1 * chaos_level
 
         if enable_tool_failures:
-            self._injectors.append(ToolFailureInjector(
-                ToolFailureConfig(probability=base_prob)
-            ))
+            self._injectors.append(ToolFailureInjector(ToolFailureConfig(probability=base_prob)))
 
         if enable_delays:
-            self._injectors.append(DelayInjector(
-                DelayConfig(probability=base_prob * 2)
-            ))
+            self._injectors.append(DelayInjector(DelayConfig(probability=base_prob * 2)))
 
         if enable_hallucinations:
-            self._injectors.append(HallucinationInjector(
-                HallucinationConfig(probability=base_prob * 0.5)
-            ))
+            self._injectors.append(
+                HallucinationInjector(HallucinationConfig(probability=base_prob * 0.5))
+            )
 
         if enable_context_corruption:
-            self._injectors.append(ContextCorruptionInjector(
-                ContextCorruptionConfig(probability=base_prob * 0.3)
-            ))
+            self._injectors.append(
+                ContextCorruptionInjector(ContextCorruptionConfig(probability=base_prob * 0.3))
+            )
 
         if enable_budget_exhaustion:
-            self._injectors.append(BudgetExhaustionInjector(
-                BudgetExhaustionConfig(probability=1.0)
-            ))
+            self._injectors.append(
+                BudgetExhaustionInjector(BudgetExhaustionConfig(probability=1.0))
+            )
 
         # Add injectors to all proxies
         for proxy in self._tool_proxies.values():
@@ -525,6 +520,7 @@ def chaos_tool(
         def my_tool(query: str) -> str:
             return f"Result: {query}"
     """
+
     def decorator(func: T) -> T:
         from .injectors.delay import DelayConfig
         from .injectors.tool_failure import ToolFailureConfig
@@ -537,14 +533,10 @@ def chaos_tool(
         )
 
         if enable_failures:
-            proxy.add_injector(ToolFailureInjector(
-                ToolFailureConfig(probability=probability)
-            ))
+            proxy.add_injector(ToolFailureInjector(ToolFailureConfig(probability=probability)))
 
         if enable_delays:
-            proxy.add_injector(DelayInjector(
-                DelayConfig(probability=probability)
-            ))
+            proxy.add_injector(DelayInjector(DelayConfig(probability=probability)))
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:

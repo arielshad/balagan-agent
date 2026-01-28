@@ -74,7 +74,9 @@ class DelayInjector(BaseInjector):
             if self._rng.random() < self.config.spike_probability:
                 # Spike: multiply by spike_multiplier
                 base_delay = self._rng.uniform(min_ms, max_ms)
-                delay = min(base_delay * self.config.spike_multiplier, max_ms * self.config.spike_multiplier)
+                delay = min(
+                    base_delay * self.config.spike_multiplier, max_ms * self.config.spike_multiplier
+                )
             else:
                 delay = self._rng.uniform(min_ms, max_ms / 2)
 
@@ -118,7 +120,9 @@ class DelayInjector(BaseInjector):
 
         return delay_ms, details
 
-    async def inject_async(self, target: str, context: dict[str, Any]) -> tuple[float, dict[str, Any]]:
+    async def inject_async(
+        self, target: str, context: dict[str, Any]
+    ) -> tuple[float, dict[str, Any]]:
         """Async version of inject."""
         delay_ms = self._calculate_delay()
 

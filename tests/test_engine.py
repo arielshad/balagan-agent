@@ -1,6 +1,5 @@
 """Tests for the chaos engine."""
 
-
 from balaganagent import ChaosEngine
 from balaganagent.experiment import ExperimentConfig, ExperimentStatus
 
@@ -175,6 +174,7 @@ class TestExperiment:
         exp.start()
 
         import time
+
         time.sleep(0.01)
 
         assert exp.should_continue() is False

@@ -10,34 +10,40 @@ from pytest_bdd import given, parsers, scenario, then, when
 @pytest.fixture
 def mock_crewai_tool():
     """Create a mock CrewAI tool."""
+
     def _create(name: str, func=None):
         tool = MagicMock()
         tool.name = name
         tool.func = func or MagicMock(return_value="tool result")
         return tool
+
     return _create
 
 
 @pytest.fixture
 def mock_crewai_agent():
     """Create a mock CrewAI agent."""
+
     def _create(role: str, tools: list = None):
         agent = MagicMock()
         agent.role = role
         agent.tools = tools or []
         return agent
+
     return _create
 
 
 @pytest.fixture
 def mock_crew():
     """Create a mock CrewAI crew."""
+
     def _create(agents: list, tasks: list = None):
         crew = MagicMock()
         crew.agents = agents
         crew.tasks = tasks or []
         crew.kickoff = MagicMock(return_value={"status": "completed"})
         return crew
+
     return _create
 
 
@@ -113,6 +119,7 @@ def crew_with_one_agent(context, mock_crewai_tool, mock_crewai_agent, mock_crew)
 def wrapper_for_crew(context):
     """Create a wrapper for the crew."""
     from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"])
 
 
@@ -120,6 +127,7 @@ def wrapper_for_crew(context):
 def wrapper_with_chaos(context, level):
     """Create a wrapper with specific chaos level."""
     from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"], chaos_level=level)
 
 
@@ -170,6 +178,7 @@ def tool_proxy_with_retries(context, retries):
 def create_wrapper(context):
     """Create a wrapper for the crew."""
     from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"])
 
 

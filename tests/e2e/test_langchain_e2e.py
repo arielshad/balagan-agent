@@ -113,7 +113,6 @@ class MockChain:
         return [self.invoke(inp, **kwargs) for inp in inputs]
 
 
-
 class TestLangChainE2EWorkflow:
     """End-to-end tests for LangChain workflow with chaos injection."""
 
@@ -166,9 +165,7 @@ class TestLangChainE2EWorkflow:
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
 
         # Add failure injector
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1))
         wrapper.add_injector(injector, tools=["search"])
 
         wrapped_tools = wrapper.get_wrapped_tools()
@@ -189,9 +186,7 @@ class TestLangChainE2EWorkflow:
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
 
         # Add delay injector
-        injector = DelayInjector(
-            DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10)
-        )
+        injector = DelayInjector(DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10))
         wrapper.add_injector(injector, tools=["fast_tool"])
 
         wrapped_tools = wrapper.get_wrapped_tools()
@@ -454,9 +449,7 @@ class TestLangChainErrorHandling:
 
         tool = MockTool("failing", always_fails)
 
-        proxy = LangChainToolProxy(
-            tool, chaos_level=0.0, max_retries=2, retry_delay=0.01
-        )
+        proxy = LangChainToolProxy(tool, chaos_level=0.0, max_retries=2, retry_delay=0.01)
 
         with pytest.raises(RuntimeError, match="Permanent failure"):
             proxy()
@@ -479,9 +472,7 @@ class TestLangChainErrorHandling:
             return "success"
 
         tool = MockTool("flaky", flaky_func)
-        proxy = LangChainToolProxy(
-            tool, chaos_level=0.0, max_retries=3, retry_delay=0.01
-        )
+        proxy = LangChainToolProxy(tool, chaos_level=0.0, max_retries=3, retry_delay=0.01)
 
         result = proxy()
         assert result == "success"

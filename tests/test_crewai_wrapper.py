@@ -272,9 +272,7 @@ class TestCrewAIToolProxy:
         mock_tool = MagicMock()
         mock_tool.name = "flaky_tool"
         # Fail twice, then succeed
-        mock_tool.func = MagicMock(
-            side_effect=[Exception("fail1"), Exception("fail2"), "success"]
-        )
+        mock_tool.func = MagicMock(side_effect=[Exception("fail1"), Exception("fail2"), "success"])
 
         proxy = CrewAIToolProxy(mock_tool, chaos_level=0.0, max_retries=3, retry_delay=0.01)
         result = proxy()

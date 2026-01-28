@@ -10,6 +10,7 @@ import sys
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     print("⚠️  python-dotenv not installed. Install with: pip install python-dotenv")
@@ -62,22 +63,21 @@ def validate_gemini_key() -> tuple[bool, str]:
 
         # List available models to verify API key works
         models = genai.list_models()
-        available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+        available_models = [
+            m.name for m in models if "generateContent" in m.supported_generation_methods
+        ]
 
         if not available_models:
             return False, (
-                f"❌ No models available with your API key.\n"
-                f"   The key may be valid but has no access to Gemini models.\n"
-                f"   Check your API key settings: https://aistudio.google.com/app/apikey"
+                "❌ No models available with your API key.\n"
+                "   The key may be valid but has no access to Gemini models.\n"
+                "   Check your API key settings: https://aistudio.google.com/app/apikey"
             )
 
         # Use the first available model for a quick test
-        model_name = available_models[0].replace('models/', '')
+        model_name = available_models[0].replace("models/", "")
         model = genai.GenerativeModel(model_name)
-        response = model.generate_content(
-            "Say 'OK'",
-            generation_config={"max_output_tokens": 5}
-        )
+        response = model.generate_content("Say 'OK'", generation_config={"max_output_tokens": 5})
 
         # If we got here, the key is valid
         return True, (
@@ -101,15 +101,15 @@ def validate_gemini_key() -> tuple[bool, str]:
             )
         elif "quota" in error_msg.lower():
             return False, (
-                f"❌ API quota exceeded.\n"
-                f"   Your API key may be valid but you've hit rate limits.\n"
-                f"   Check your quota: https://aistudio.google.com/app/apikey"
+                "❌ API quota exceeded.\n"
+                "   Your API key may be valid but you've hit rate limits.\n"
+                "   Check your quota: https://aistudio.google.com/app/apikey"
             )
         elif "PERMISSION_DENIED" in error_msg:
             return False, (
-                f"❌ Permission denied.\n"
-                f"   The API key doesn't have permission to use Gemini.\n"
-                f"   Enable the API: https://aistudio.google.com/app/apikey"
+                "❌ Permission denied.\n"
+                "   The API key doesn't have permission to use Gemini.\n"
+                "   Enable the API: https://aistudio.google.com/app/apikey"
             )
         else:
             return False, (
@@ -129,7 +129,7 @@ def main():
 
     if is_valid:
         print("\n✨ You can now run the Gemini research agent:")
-        print("   python examples/crewai_gemini_research_agent.py \"your topic\"")
+        print('   python examples/crewai_gemini_research_agent.py "your topic"')
         sys.exit(0)
     else:
         print("\n💡 Next steps:")

@@ -104,6 +104,7 @@ class TestGeminiAgentCreation:
     def test_create_researcher_agent_with_mock_llm(self):
         """Test researcher agent creation with Gemini model string."""
         from crewai import Agent
+
         from examples.crewai_gemini_research_agent import create_researcher_agent
 
         # Pass a model string directly (CrewAI's native provider format)
@@ -115,6 +116,7 @@ class TestGeminiAgentCreation:
     def test_create_writer_agent_with_mock_llm(self):
         """Test writer agent creation with Gemini model string."""
         from crewai import Agent
+
         from examples.crewai_gemini_research_agent import create_writer_agent
 
         # Pass a model string directly
@@ -141,6 +143,7 @@ class TestGeminiCrewCreation:
     def test_build_crew_returns_crew(self):
         """Test that build_research_crew returns a Crew instance."""
         from crewai import Crew
+
         from examples.crewai_gemini_research_agent import build_research_crew
 
         # Use model string for native provider

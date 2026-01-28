@@ -10,23 +10,27 @@ from pytest_bdd import given, parsers, scenario, then, when
 @pytest.fixture
 def mock_autogen_agent():
     """Create a mock AutoGen agent."""
+
     def _create(name: str, function_map: dict = None):
         agent = MagicMock()
         agent.name = name
         agent.function_map = function_map or {}
         agent.generate_reply = MagicMock(return_value="Agent reply")
         return agent
+
     return _create
 
 
 @pytest.fixture
 def mock_user_proxy():
     """Create a mock user proxy agent."""
+
     def _create(name: str = "user"):
         proxy = MagicMock()
         proxy.name = name
         proxy.initiate_chat = MagicMock(return_value={"messages": [], "status": "completed"})
         return proxy
+
     return _create
 
 
@@ -120,6 +124,7 @@ def agent_with_functions(context, count, mock_autogen_agent):
 def wrapper_for_agent(context):
     """Create a wrapper for the agent."""
     from balaganagent.wrappers.autogen import AutoGenWrapper
+
     context["wrapper"] = AutoGenWrapper(context["agent"])
 
 
@@ -127,6 +132,7 @@ def wrapper_for_agent(context):
 def wrapper_with_chaos(context, level):
     """Create a wrapper with specific chaos level."""
     from balaganagent.wrappers.autogen import AutoGenWrapper
+
     context["wrapper"] = AutoGenWrapper(context["agent"], chaos_level=level)
 
 
@@ -140,6 +146,7 @@ def create_user_proxy(context, mock_user_proxy):
 def wrapper_with_both_agents(context, level):
     """Create a wrapper with both assistant and user proxy."""
     from balaganagent.wrappers.autogen import AutoGenWrapper
+
     context["wrapper"] = AutoGenWrapper(
         context["agent"],
         user_proxy=context["user_proxy"],
@@ -162,6 +169,7 @@ def multiple_agents(context, count, mock_autogen_agent):
 def multi_agent_wrapper(context):
     """Create a multi-agent wrapper."""
     from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
+
     context["multi_wrapper"] = AutoGenMultiAgentWrapper(context["agents"])
 
 
@@ -169,6 +177,7 @@ def multi_agent_wrapper(context):
 def multi_agent_wrapper_with_chaos(context, level):
     """Create a multi-agent wrapper with specific chaos level."""
     from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
+
     context["multi_wrapper"] = AutoGenMultiAgentWrapper(context["agents"], chaos_level=level)
 
 
@@ -205,6 +214,7 @@ def function_proxy_with_retries(context, retries):
 def wrapper_without_user_proxy(context):
     """Create a wrapper without user proxy."""
     from balaganagent.wrappers.autogen import AutoGenWrapper
+
     context["wrapper"] = AutoGenWrapper(context["agent"], chaos_level=0.0)
 
 
@@ -213,6 +223,7 @@ def wrapper_without_user_proxy(context):
 def create_wrapper(context):
     """Create a wrapper for the agent."""
     from balaganagent.wrappers.autogen import AutoGenWrapper
+
     context["wrapper"] = AutoGenWrapper(context["agent"])
 
 
@@ -225,9 +236,7 @@ def configure_chaos(context, level):
 @when("I generate a reply with a user message")
 def generate_reply(context):
     """Generate a reply."""
-    context["reply"] = context["wrapper"].generate_reply(
-        [{"role": "user", "content": "Hello"}]
-    )
+    context["reply"] = context["wrapper"].generate_reply([{"role": "user", "content": "Hello"}])
 
 
 @when(parsers.parse('I initiate a chat with message "{message}"'))
@@ -268,6 +277,7 @@ def reset_wrapper(context):
 def create_multi_agent_wrapper(context):
     """Create a multi-agent wrapper."""
     from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
+
     context["multi_wrapper"] = AutoGenMultiAgentWrapper(context["agents"])
 
 

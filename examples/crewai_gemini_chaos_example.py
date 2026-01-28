@@ -28,14 +28,10 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from typing import Optional
 
 # Import the research agent components
 from crewai_gemini_research_agent import (
     build_research_crew,
-    create_researcher_agent,
-    create_writer_agent,
-    create_tools,
     get_gemini_llm,
 )
 
@@ -103,10 +99,10 @@ def scenario_tool_failures(topic: str = "quantum computing", verbose: bool = Fal
         # Calculate aggregate success rate
         total_calls = 0
         total_failures = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total_calls += ops.get('total', 0)
-            total_failures += ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total_calls += ops.get("total", 0)
+            total_failures += ops.get("failed", 0)
 
         if total_calls > 0:
             success_rate = ((total_calls - total_failures) / total_calls) * 100
@@ -169,10 +165,10 @@ def scenario_latency_injection(topic: str = "blockchain", verbose: bool = False)
         # Calculate average latency
         total_latency = 0.0
         total_calls = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            latency = tool_metrics.get('latency', {})
-            count = tool_metrics.get('operations', {}).get('total', 0)
-            mean_ms = latency.get('mean_ms', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            latency = tool_metrics.get("latency", {})
+            count = tool_metrics.get("operations", {}).get("total", 0)
+            mean_ms = latency.get("mean_ms", 0)
             total_latency += mean_ms * count
             total_calls += count
 
@@ -232,10 +228,10 @@ def scenario_partial_failures(topic: str = "machine learning", verbose: bool = F
         print("\n📊 Chaos Statistics:")
 
         # Show per-tool failure rates
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total = ops.get('total', 0)
-            failed = ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total = ops.get("total", 0)
+            failed = ops.get("failed", 0)
             if total > 0:
                 failure_rate = (failed / total) * 100
                 print(f"  {tool_name}: {total} calls, {failed} failures ({failure_rate:.1f}%)")
@@ -292,10 +288,10 @@ def scenario_data_corruption(topic: str = "cybersecurity", verbose: bool = False
 
         # Count corrupted operations
         corrupted_count = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            faults = tool_metrics.get('faults', {})
-            corrupted_count += faults.get('hallucination', 0)
-            corrupted_count += faults.get('context_corruption', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            faults = tool_metrics.get("faults", {})
+            corrupted_count += faults.get("hallucination", 0)
+            corrupted_count += faults.get("context_corruption", 0)
 
         print(f"Corrupted operations: {corrupted_count}")
 
@@ -354,17 +350,17 @@ def scenario_stress_test(topic: str = "artificial intelligence", verbose: bool =
         total_latency = 0.0
         fault_counts = {}
 
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total_calls += ops.get('total', 0)
-            total_failures += ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total_calls += ops.get("total", 0)
+            total_failures += ops.get("failed", 0)
 
-            latency = tool_metrics.get('latency', {})
-            mean_ms = latency.get('mean_ms', 0)
-            count = ops.get('total', 0)
+            latency = tool_metrics.get("latency", {})
+            mean_ms = latency.get("mean_ms", 0)
+            count = ops.get("total", 0)
             total_latency += mean_ms * count
 
-            faults = tool_metrics.get('faults', {})
+            faults = tool_metrics.get("faults", {})
             for fault_type, count in faults.items():
                 fault_counts[fault_type] = fault_counts.get(fault_type, 0) + count
 

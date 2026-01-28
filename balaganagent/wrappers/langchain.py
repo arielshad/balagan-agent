@@ -448,14 +448,10 @@ class LangChainAgentWrapper:
         base_prob = 0.1 * chaos_level
 
         if enable_tool_failures:
-            self._injectors.append(
-                ToolFailureInjector(ToolFailureConfig(probability=base_prob))
-            )
+            self._injectors.append(ToolFailureInjector(ToolFailureConfig(probability=base_prob)))
 
         if enable_delays:
-            self._injectors.append(
-                DelayInjector(DelayConfig(probability=base_prob * 2))
-            )
+            self._injectors.append(DelayInjector(DelayConfig(probability=base_prob * 2)))
 
         if enable_hallucinations:
             self._injectors.append(
@@ -464,9 +460,7 @@ class LangChainAgentWrapper:
 
         if enable_context_corruption:
             self._injectors.append(
-                ContextCorruptionInjector(
-                    ContextCorruptionConfig(probability=base_prob * 0.3)
-                )
+                ContextCorruptionInjector(ContextCorruptionConfig(probability=base_prob * 0.3))
             )
 
         if enable_budget_exhaustion:
@@ -480,9 +474,7 @@ class LangChainAgentWrapper:
             for injector in self._injectors:
                 proxy.add_injector(injector)
 
-    def add_injector(
-        self, injector: BaseInjector, tools: Optional[list[str]] = None
-    ):
+    def add_injector(self, injector: BaseInjector, tools: Optional[list[str]] = None):
         """
         Add a custom injector to specific tools or all tools.
 
@@ -518,9 +510,7 @@ class LangChainAgentWrapper:
 
         return self._agent_executor.invoke(input_data, **kwargs)
 
-    async def ainvoke(
-        self, input_data: dict, config: Optional[dict] = None, **kwargs
-    ) -> Any:
+    async def ainvoke(self, input_data: dict, config: Optional[dict] = None, **kwargs) -> Any:
         """
         Async invoke the agent with chaos injection.
 
@@ -539,9 +529,7 @@ class LangChainAgentWrapper:
 
         return await self._agent_executor.ainvoke(input_data, **kwargs)
 
-    def stream(
-        self, input_data: dict, config: Optional[dict] = None, **kwargs
-    ) -> Iterator[Any]:
+    def stream(self, input_data: dict, config: Optional[dict] = None, **kwargs) -> Iterator[Any]:
         """
         Stream responses from the agent.
 
@@ -582,9 +570,7 @@ class LangChainAgentWrapper:
         async for chunk in self._agent_executor.astream(input_data, **kwargs):
             yield chunk
 
-    def batch(
-        self, inputs: list[dict], config: Optional[dict] = None, **kwargs
-    ) -> list[Any]:
+    def batch(self, inputs: list[dict], config: Optional[dict] = None, **kwargs) -> list[Any]:
         """
         Batch invoke the agent.
 

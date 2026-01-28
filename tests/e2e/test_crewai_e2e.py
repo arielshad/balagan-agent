@@ -147,9 +147,7 @@ class TestCrewAIE2EWorkflow:
         wrapper = CrewAIWrapper(crew, chaos_level=0.0)
 
         # Add a deterministic failure injector (always fails)
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1))
         wrapper.add_injector(injector, tools=["unreliable_search"])
 
         # The wrapped tool should have the injector
@@ -174,9 +172,7 @@ class TestCrewAIE2EWorkflow:
         wrapper = CrewAIWrapper(crew, chaos_level=0.0)
 
         # Add delay injector with small fixed delay (in milliseconds)
-        injector = DelayInjector(
-            DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10)
-        )
+        injector = DelayInjector(DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10))
         wrapper.add_injector(injector, tools=["fast_tool"])
 
         wrapped_tools = wrapper.get_wrapped_tools()
@@ -307,9 +303,7 @@ class TestCrewAIE2EWorkflow:
         search = MockCrewAITool("search", search_tool)
         processor = MockCrewAITool("process", process_tool)
 
-        agent = MockCrewAIAgent(
-            role="Worker", goal="Work", tools=[search, processor]
-        )
+        agent = MockCrewAIAgent(role="Worker", goal="Work", tools=[search, processor])
         task = MockCrewAITask("Task", agent)
         crew = MockCrew(agents=[agent], tasks=[task])
 
