@@ -237,10 +237,11 @@ class CrewAIToolProxy:
                 self._logger.recovery(self._tool_name, retries, False)
 
         # Verbose logging: error
-        if self.verbose:
+        if self.verbose and last_error is not None:
             self._logger.tool_error(last_error, call.duration_ms)
 
-        raise last_error  # type: ignore
+        assert last_error is not None, "last_error should not be None after all retries exhausted"
+        raise last_error
 
     def get_call_history(self) -> list[CrewAIToolCall]:
         """Get call history."""

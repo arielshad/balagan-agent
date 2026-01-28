@@ -277,10 +277,11 @@ class ToolProxy:
                 self._logger.recovery(self.name, retries, False)
 
         # Verbose logging: error
-        if self.verbose:
+        if self.verbose and last_error is not None:
             self._logger.tool_error(last_error, call.duration_ms)
 
-        raise last_error  # type: ignore
+        assert last_error is not None, "last_error should not be None after all retries exhausted"
+        raise last_error
 
     def get_call_history(self) -> list[ToolCall]:
         """Get call history."""
@@ -385,7 +386,8 @@ class AgentWrapper:
         if hasattr(self._original_agent, "tools"):
             tools = getattr(self._original_agent, "tools")
             if isinstance(tools, dict) and name in tools:
-                return tools[name]
+                from typing import cast
+                return cast(Callable[..., Any], tools[name])
 
         # Try as attribute
         return getattr(self._original_agent, name, None)

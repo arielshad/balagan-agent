@@ -15,7 +15,7 @@ import pytest
 class MockLLM:
     """Mock LangChain LLM for testing."""
 
-    def __init__(self, responses: list = None):
+    def __init__(self, responses: list | None = None):
         self.responses = responses or ["Default LLM response"]
         self._call_count = 0
 
@@ -46,7 +46,7 @@ class MockTool:
 class MockAgentExecutor:
     """Mock LangChain AgentExecutor for testing."""
 
-    def __init__(self, tools: list = None, llm=None):
+    def __init__(self, tools: list | None = None, llm=None):
         self.tools = tools or []
         self.llm = llm or MockLLM()
         self._invoke_count = 0

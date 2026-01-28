@@ -68,7 +68,7 @@ class ReportGenerator:
         successful_ops = sum(r.successful_operations for r in results)
         total_faults = sum(r.faults_injected for r in results)
 
-        summary = {
+        summary: dict[str, Any] = {
             "total_experiments": total,
             "completed": completed,
             "failed": failed,

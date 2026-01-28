@@ -27,7 +27,7 @@ def mock_langchain_tool():
 def mock_agent_executor():
     """Create a mock LangChain AgentExecutor."""
 
-    def _create(tools: list = None):
+    def _create(tools: list | None = None):
         executor = MagicMock()
         executor.tools = tools or []
         executor.invoke = MagicMock(return_value={"output": "response"})
