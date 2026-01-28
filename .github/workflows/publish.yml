@@ -1,6 +1,9 @@
 name: Publish to PyPI
 
 on:
+  push:
+    branches:
+      - main
   release:
     types: [published]
   workflow_dispatch:
@@ -16,8 +19,52 @@ permissions:
   id-token: write  # Required for trusted publishing
 
 jobs:
+  check-version:
+    name: Check if version is new
+    runs-on: ubuntu-latest
+    outputs:
+      should-publish: ${{ steps.version-check.outputs.should-publish }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Get version from pyproject.toml
+        id: get-version
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Check if version exists on PyPI
+        id: version-check
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+
+          # For manual workflow dispatch or releases, always publish
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "release" ]]; then
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+            echo "Manual trigger or release - will publish"
+            exit 0
+          fi
+
+          # Check if version exists on PyPI
+          if pip index versions agentchaos 2>&1 | grep -q "$VERSION"; then
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+            echo "Version $VERSION already exists on PyPI - skipping"
+          else
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+            echo "Version $VERSION is new - will publish"
+          fi
+
   build:
     name: Build distribution
+    needs: check-version
+    if: needs.check-version.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,8 +90,8 @@ jobs:
 
   publish-to-pypi:
     name: Publish to PyPI
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test-pypi)
-    needs: build
+    if: needs.check-version.outputs.should-publish == 'true' && (github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test-pypi))
+    needs: [check-version, build]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -67,8 +114,8 @@ jobs:
 
   publish-to-testpypi:
     name: Publish to TestPyPI
-    if: github.event_name == 'workflow_dispatch' && inputs.test-pypi
-    needs: build
+    if: needs.check-version.outputs.should-publish == 'true' && github.event_name == 'workflow_dispatch' && inputs.test-pypi
+    needs: [check-version, build]
     runs-on: ubuntu-latest
     environment:
       name: testpypi
