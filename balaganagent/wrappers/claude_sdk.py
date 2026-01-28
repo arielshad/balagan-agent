@@ -1,21 +1,36 @@
 """Claude Agent SDK wrapper for chaos injection.
 
 This module provides chaos engineering capabilities for agents built with the
-Claude Agent SDK. It wraps agent tools and enables fault injection during
-agent execution.
+Claude Agent SDK (``claude-agent-sdk``).  The SDK exposes two main entry
+points — ``query()`` for one-shot prompts and ``ClaudeSDKClient`` for
+bidirectional conversations — and custom tools defined via the ``@tool``
+decorator + ``create_sdk_mcp_server()``.
 
-Example usage:
-    from claude_agent_sdk import Agent, tool
+BalaganAgent intercepts **custom tool functions** before they are registered
+with the SDK so that every invocation passes through the chaos engine.  The
+wrapper also collects per-tool metrics, MTTR stats and supports named
+experiments.
+
+Example usage::
+
+    from claude_agent_sdk import tool, create_sdk_mcp_server, ClaudeAgentOptions
     from balaganagent.wrappers.claude_sdk import ClaudeAgentSDKWrapper
 
-    agent = Agent(name="researcher", tools=[search, summarize])
+    @tool("search", "Search the web", {"query": str})
+    async def search(args):
+        return {"content": [{"type": "text", "text": f"Results for {args['query']}"}]}
 
-    # Wrap with chaos
-    wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.5)
-    wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
+    # Wrap tools with chaos *before* creating the MCP server
+    wrapper = ClaudeAgentSDKWrapper(tools=[search], chaos_level=0.5)
+    wrapper.configure_chaos(enable_tool_failures=True)
 
-    # Run with chaos injection
-    result = wrapper.run("Research AI safety")
+    # Build SDK server from the chaos-wrapped tools
+    server = wrapper.create_mcp_server(name="my-tools", version="1.0.0")
+
+    options = ClaudeAgentOptions(
+        mcp_servers={"tools": server},
+        allowed_tools=["mcp__tools__search"],
+    )
 """
 
 import time
@@ -33,7 +48,6 @@ from ..injectors import (
     ToolFailureInjector,
 )
 from ..metrics import MetricsCollector, MTTRCalculator
-from ..verbose import get_logger
 
 
 @dataclass
@@ -62,12 +76,11 @@ class ClaudeAgentSDKToolCall:
 
 
 class ClaudeAgentSDKToolProxy:
-    """
-    Proxy for Claude Agent SDK tool functions that enables chaos injection.
+    """Proxy for a Claude Agent SDK ``@tool`` function with chaos injection.
 
-    Claude Agent SDK agents expose tools as callables (functions decorated with
-    ``@tool`` or plain functions). This proxy wraps those functions to inject
-    faults during execution.
+    In the real SDK a custom tool is an async callable that receives an
+    ``args`` dict and returns an MCP-style result dict.  This proxy wraps
+    that callable so injectors can intercept every invocation.
     """
 
     def __init__(
@@ -77,20 +90,24 @@ class ClaudeAgentSDKToolProxy:
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
-        verbose: bool = False,
     ):
         self._func = func
         self._tool_name = name
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self.verbose = verbose
-        self._logger = get_logger()
 
         self._injectors: list[BaseInjector] = []
         self._call_history: list[ClaudeAgentSDKToolCall] = []
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
+
+        # Preserve the original tool metadata so the SDK still recognises it
+        for attr in ("__name__", "__doc__", "__module__", "__qualname__"):
+            try:
+                setattr(self, attr, getattr(func, attr))
+            except AttributeError:
+                pass
 
     @property
     def tool_name(self) -> str:
@@ -108,27 +125,23 @@ class ClaudeAgentSDKToolProxy:
         """Remove all injectors."""
         self._injectors.clear()
 
+    # ------------------------------------------------------------------
+    # Invocation
+    # ------------------------------------------------------------------
+
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        """Execute the tool with chaos injection."""
+        """Execute the tool with chaos injection (sync path)."""
         call = ClaudeAgentSDKToolCall(
             tool_name=self._tool_name,
             args=args,
             kwargs=kwargs,
             start_time=time.time(),
         )
-
-        context = {
-            "tool_name": self._tool_name,
-            "args": args,
-            "kwargs": kwargs,
-        }
-
-        if self.verbose:
-            self._logger.tool_call(self._tool_name, args, kwargs)
+        context = {"tool_name": self._tool_name, "args": args, "kwargs": kwargs}
 
         retries = 0
-        last_error = None
-        fault_injected = None
+        last_error: Optional[Exception] = None
+        fault_injected: Optional[str] = None
 
         while retries <= self._max_retries:
             try:
@@ -139,7 +152,7 @@ class ClaudeAgentSDKToolProxy:
                         fault_injected = fault_type
                         self._mttr.record_failure(self._tool_name, fault_type)
 
-                        result, details = injector.inject(self._tool_name, context)
+                        result, _details = injector.inject(self._tool_name, context)
                         if result is not None:
                             call.end_time = time.time()
                             call.fault_injected = fault_type
@@ -153,7 +166,7 @@ class ClaudeAgentSDKToolProxy:
                             )
                             return result
 
-                # Execute the actual tool function
+                # Execute the real tool function
                 result = self._func(*args, **kwargs)
 
                 call.end_time = time.time()
@@ -168,11 +181,6 @@ class ClaudeAgentSDKToolProxy:
                         retries=retries,
                         success=True,
                     )
-                    if self.verbose:
-                        self._logger.recovery(self._tool_name, retries, True)
-
-                if self.verbose:
-                    self._logger.tool_result(result, call.duration_ms)
 
                 self._call_history.append(call)
                 self._metrics.record_operation(
@@ -182,17 +190,13 @@ class ClaudeAgentSDKToolProxy:
                     retries=retries,
                     fault_type=fault_injected,
                 )
-
                 return result
 
             except Exception as e:
                 last_error = e
                 retries += 1
                 call.retries = retries
-
                 if retries <= self._max_retries:
-                    if self.verbose:
-                        self._logger.retry(retries, self._max_retries, self._retry_delay)
                     time.sleep(self._retry_delay)
                 else:
                     break
@@ -201,7 +205,6 @@ class ClaudeAgentSDKToolProxy:
         call.end_time = time.time()
         call.error = str(last_error)
         self._call_history.append(call)
-
         self._metrics.record_operation(
             self._tool_name,
             call.duration_ms,
@@ -209,7 +212,6 @@ class ClaudeAgentSDKToolProxy:
             retries=retries,
             fault_type=fault_injected,
         )
-
         if fault_injected:
             self._mttr.record_recovery(
                 self._tool_name,
@@ -218,25 +220,21 @@ class ClaudeAgentSDKToolProxy:
                 retries=retries,
                 success=False,
             )
-            if self.verbose:
-                self._logger.recovery(self._tool_name, retries, False)
 
-        if self.verbose and last_error is not None:
-            self._logger.tool_error(last_error, call.duration_ms)
-
-        assert last_error is not None, "last_error should not be None after all retries exhausted"
+        assert last_error is not None
         raise last_error
 
+    # ------------------------------------------------------------------
+    # History / metrics
+    # ------------------------------------------------------------------
+
     def get_call_history(self) -> list[ClaudeAgentSDKToolCall]:
-        """Get call history."""
         return self._call_history.copy()
 
     def get_metrics(self) -> dict[str, Any]:
-        """Get metrics summary."""
         return self._metrics.get_summary()
 
     def reset(self):
-        """Reset proxy state."""
         self._call_history.clear()
         self._metrics.reset()
         self._mttr.reset()
@@ -244,78 +242,104 @@ class ClaudeAgentSDKToolProxy:
             injector.reset()
 
 
-class ClaudeAgentSDKWrapper:
-    """
-    Wrapper for Claude Agent SDK agents that enables chaos engineering.
+@dataclass
+class _ToolRecord:
+    """Internal record of an original tool and its proxy."""
 
-    This wrapper intercepts tool calls from the agent and injects faults
-    according to the configured chaos level. It supports agents that expose
-    tools as either a list of objects (with ``name``/``func`` attributes) or
-    a dict mapping names to callables.
+    name: str
+    original: Callable
+    proxy: ClaudeAgentSDKToolProxy
+
+
+class ClaudeAgentSDKWrapper:
+    """Chaos wrapper for Claude Agent SDK custom tools.
+
+    The Claude Agent SDK defines agents via ``query()`` or
+    ``ClaudeSDKClient``, and custom tools via ``@tool`` +
+    ``create_sdk_mcp_server()``.  This wrapper sits between
+    the tool definitions and the MCP server creation so that
+    every tool invocation flows through BalaganAgent injectors.
+
+    Usage::
+
+        wrapper = ClaudeAgentSDKWrapper(tools=[search, save], chaos_level=0.5)
+        wrapper.configure_chaos(enable_tool_failures=True)
+        wrapped_tools = wrapper.get_wrapped_tools()
+        # pass wrapped_tools to create_sdk_mcp_server(...)
     """
 
     def __init__(
         self,
-        agent: Any,
+        tools: Optional[list[Any]] = None,
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
-        verbose: bool = False,
     ):
-        self._agent = agent
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self.verbose = verbose
-        self._logger = get_logger()
 
-        self._tool_proxies: dict[str, ClaudeAgentSDKToolProxy] = {}
+        self._tool_records: dict[str, _ToolRecord] = {}
         self._injectors: list[BaseInjector] = []
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
-        self._run_count = 0
+        self._query_count = 0
 
         self._experiments: list[Experiment] = []
         self._experiment_results: list[ExperimentResult] = []
         self._current_experiment: Optional[Experiment] = None
 
-        self._wrap_tools()
+        if tools:
+            self._register_tools(tools)
 
-    @property
-    def agent(self) -> Any:
-        """Get the wrapped agent."""
-        return self._agent
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
 
     @property
     def chaos_level(self) -> float:
-        """Get the current chaos level."""
         return self._chaos_level
 
-    def _wrap_tools(self):
-        """Wrap all tools from the agent."""
-        tools = getattr(self._agent, "tools", [])
+    @property
+    def query_count(self) -> int:
+        return self._query_count
 
-        if isinstance(tools, dict):
-            for name, func in tools.items():
-                self._add_tool_proxy(name, func)
-        elif isinstance(tools, (list, tuple)):
-            for tool in tools:
-                tool_name = getattr(tool, "name", str(tool))
-                tool_func = getattr(tool, "func", tool)
-                self._add_tool_proxy(tool_name, tool_func)
+    # ------------------------------------------------------------------
+    # Tool registration
+    # ------------------------------------------------------------------
 
-    def _add_tool_proxy(self, name: str, func: Callable):
-        """Create and register a tool proxy."""
-        if name not in self._tool_proxies:
+    def _register_tools(self, tools: list[Any]):
+        """Register tools, which may be callables, dicts, or objects with name/func."""
+        for t in tools:
+            if isinstance(t, dict):
+                name = t.get("name", str(t))
+                func = t.get("func", t)
+            elif hasattr(t, "name") and hasattr(t, "func"):
+                name = t.name
+                func = t.func
+            elif callable(t):
+                name = getattr(t, "__name__", str(t))
+                func = t
+            else:
+                continue
+
             proxy = ClaudeAgentSDKToolProxy(
                 func,
                 name=name,
                 chaos_level=self._chaos_level,
                 max_retries=self._max_retries,
                 retry_delay=self._retry_delay,
-                verbose=self.verbose,
             )
-            self._tool_proxies[name] = proxy
+            self._tool_records[name] = _ToolRecord(name=name, original=func, proxy=proxy)
+
+    def add_tool(self, func: Callable, name: Optional[str] = None):
+        """Register a single tool after construction."""
+        tool_name = name or getattr(func, "__name__", str(func))
+        self._register_tools([{"name": tool_name, "func": func}])
+
+    # ------------------------------------------------------------------
+    # Chaos configuration
+    # ------------------------------------------------------------------
 
     def configure_chaos(
         self,
@@ -339,90 +363,97 @@ class ClaudeAgentSDKWrapper:
 
         if enable_tool_failures:
             self._injectors.append(ToolFailureInjector(ToolFailureConfig(probability=base_prob)))
-
         if enable_delays:
             self._injectors.append(DelayInjector(DelayConfig(probability=base_prob * 2)))
-
         if enable_hallucinations:
             self._injectors.append(
                 HallucinationInjector(HallucinationConfig(probability=base_prob * 0.5))
             )
-
         if enable_context_corruption:
             self._injectors.append(
                 ContextCorruptionInjector(ContextCorruptionConfig(probability=base_prob * 0.3))
             )
-
         if enable_budget_exhaustion:
             self._injectors.append(
                 BudgetExhaustionInjector(BudgetExhaustionConfig(probability=1.0))
             )
 
-        # Apply injectors to all tool proxies
-        for proxy in self._tool_proxies.values():
-            proxy.clear_injectors()
+        for rec in self._tool_records.values():
+            rec.proxy.clear_injectors()
             for injector in self._injectors:
-                proxy.add_injector(injector)
+                rec.proxy.add_injector(injector)
 
     def add_injector(self, injector: BaseInjector, tools: Optional[list[str]] = None):
         """Add a custom injector to specific tools or all tools."""
-        targets = tools or list(self._tool_proxies.keys())
+        targets = tools or list(self._tool_records.keys())
         for name in targets:
-            if name in self._tool_proxies:
-                self._tool_proxies[name].add_injector(injector)
+            if name in self._tool_records:
+                self._tool_records[name].proxy.add_injector(injector)
+
+    # ------------------------------------------------------------------
+    # Wrapped-tool access
+    # ------------------------------------------------------------------
 
     def get_wrapped_tools(self) -> dict[str, ClaudeAgentSDKToolProxy]:
-        """Get dictionary of wrapped tools."""
-        return self._tool_proxies.copy()
+        """Return a dict mapping tool names to chaos-wrapped proxies.
 
-    def run(self, prompt: str, **kwargs: Any) -> Any:
+        Pass these to ``create_sdk_mcp_server(tools=...)`` to register
+        chaos-wrapped tools with the Claude Agent SDK.
         """
-        Execute the agent with chaos injection active on its tools.
+        return {name: rec.proxy for name, rec in self._tool_records.items()}
 
-        Args:
-            prompt: The prompt / task for the agent
-            **kwargs: Additional arguments passed to agent.run()
+    def get_wrapped_tool_list(self) -> list[ClaudeAgentSDKToolProxy]:
+        """Return a list of chaos-wrapped tool proxies.
 
-        Returns:
-            The agent's output
+        This is the format expected by ``create_sdk_mcp_server(tools=[...])``.
         """
-        self._run_count += 1
-        return self._agent.run(prompt, **kwargs)
+        return [rec.proxy for rec in self._tool_records.values()]
+
+    # ------------------------------------------------------------------
+    # Query tracking
+    # ------------------------------------------------------------------
+
+    def record_query(self):
+        """Record that a query was sent to the agent."""
+        self._query_count += 1
+
+    # ------------------------------------------------------------------
+    # Metrics
+    # ------------------------------------------------------------------
 
     def get_metrics(self) -> dict[str, Any]:
-        """Get comprehensive metrics."""
         tool_metrics = {}
-        for name, proxy in self._tool_proxies.items():
-            tool_metrics[name] = proxy.get_metrics()
-
+        for name, rec in self._tool_records.items():
+            tool_metrics[name] = rec.proxy.get_metrics()
         return {
-            "run_count": self._run_count,
+            "query_count": self._query_count,
             "tools": tool_metrics,
             "aggregate": self._metrics.get_summary(),
         }
 
     def get_mttr_stats(self) -> dict[str, Any]:
-        """Get MTTR statistics for all tools."""
         tool_stats = {}
-        for name, proxy in self._tool_proxies.items():
-            tool_stats[name] = proxy._mttr.get_recovery_stats()
-
+        for name, rec in self._tool_records.items():
+            tool_stats[name] = rec.proxy._mttr.get_recovery_stats()
         return {
             "tools": tool_stats,
             "aggregate": self._mttr.get_recovery_stats(),
         }
 
     def reset(self):
-        """Reset wrapper state."""
-        self._run_count = 0
-        for proxy in self._tool_proxies.values():
-            proxy.reset()
+        self._query_count = 0
+        for rec in self._tool_records.values():
+            rec.proxy.reset()
         self._metrics.reset()
         self._mttr.reset()
 
+    # ------------------------------------------------------------------
+    # Experiments
+    # ------------------------------------------------------------------
+
     @contextmanager
     def experiment(self, name: str, **config_kwargs):
-        """Context manager for running chaos experiments."""
+        """Context manager for running a named chaos experiment."""
         config = ExperimentConfig(name=name, **config_kwargs)
         exp = Experiment(config)
 
@@ -442,5 +473,4 @@ class ClaudeAgentSDKWrapper:
             self._current_experiment = None
 
     def get_experiment_results(self) -> list[ExperimentResult]:
-        """Get all experiment results."""
         return self._experiment_results.copy()

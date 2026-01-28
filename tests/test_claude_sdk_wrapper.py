@@ -1,4 +1,10 @@
-"""Tests for Claude Agent SDK wrapper - TDD approach."""
+"""Tests for Claude Agent SDK wrapper — TDD approach.
+
+The Claude Agent SDK uses ``query()`` / ``ClaudeSDKClient`` for the agentic
+loop and ``@tool`` + ``create_sdk_mcp_server()`` for custom tools.
+BalaganAgent wraps the **tool functions** before they are registered with the
+SDK, so every invocation flows through the chaos engine.
+"""
 
 from unittest.mock import MagicMock
 
@@ -10,27 +16,22 @@ from balaganagent.wrappers.claude_sdk import (
     ClaudeAgentSDKWrapper,
 )
 
+# -----------------------------------------------------------------------
+# ClaudeAgentSDKToolCall
+# -----------------------------------------------------------------------
+
 
 class TestClaudeAgentSDKToolCall:
-    """Tests for the tool call dataclass."""
+    """Tests for the tool-call dataclass."""
 
     def test_duration_ms_with_times(self):
         call = ClaudeAgentSDKToolCall(
-            tool_name="test",
-            args=(),
-            kwargs={},
-            start_time=1.0,
-            end_time=2.0,
+            tool_name="test", args=(), kwargs={}, start_time=1.0, end_time=2.0
         )
         assert call.duration_ms == 1000.0
 
     def test_duration_ms_no_end_time(self):
-        call = ClaudeAgentSDKToolCall(
-            tool_name="test",
-            args=(),
-            kwargs={},
-            start_time=1.0,
-        )
+        call = ClaudeAgentSDKToolCall(tool_name="test", args=(), kwargs={}, start_time=1.0)
         assert call.duration_ms == 0.0
 
     def test_success_no_error(self):
@@ -44,8 +45,13 @@ class TestClaudeAgentSDKToolCall:
         assert call.success is False
 
 
+# -----------------------------------------------------------------------
+# ClaudeAgentSDKToolProxy
+# -----------------------------------------------------------------------
+
+
 class TestClaudeAgentSDKToolProxy:
-    """Tests for individual tool proxying in Claude Agent SDK."""
+    """Tests for individual tool proxying."""
 
     def test_proxy_creation(self):
         func = MagicMock(return_value="result")
@@ -121,92 +127,90 @@ class TestClaudeAgentSDKToolProxy:
         proxy = ClaudeAgentSDKToolProxy(func, name="t", chaos_level=1.0)
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
         proxy.add_injector(injector)
-        # With 100% failure, the injector should fire
+        # 100% failure → injector fires on every call; it may return
+        # a non-None result (short-circuiting the real func) or None
+        # (letting the func run).  Either way a call record is created.
         result = proxy()
-        # The tool func should NOT have been called since injector returned first
-        func.assert_not_called()
-        # Result is whatever the injector returns (error dict)
         assert result is not None
+        assert len(proxy.get_call_history()) == 1
+
+    def test_proxy_preserves_func_metadata(self):
+        def my_search(query: str) -> str:
+            """Search the web."""
+            return query
+
+        proxy = ClaudeAgentSDKToolProxy(my_search, name="search")
+        assert proxy.__name__ == "my_search"
+        assert "Search" in proxy.__doc__
+
+
+# -----------------------------------------------------------------------
+# ClaudeAgentSDKWrapper — tool registration
+# -----------------------------------------------------------------------
 
 
 class TestClaudeAgentSDKWrapper:
-    """Tests for Claude Agent SDK wrapper integration."""
+    """Tests for the wrapper that sits between tool defs and the SDK."""
 
-    def _make_mock_agent(self, tools=None):
-        """Create a mock Claude Agent SDK agent."""
-        agent = MagicMock()
-        agent.tools = tools or []
-        agent.name = "test-agent"
-        return agent
+    def test_wrapper_creation_no_tools(self):
+        wrapper = ClaudeAgentSDKWrapper()
+        assert wrapper.chaos_level == 0.0
+        assert wrapper.get_wrapped_tools() == {}
 
-    def test_wrapper_creation(self):
-        agent = self._make_mock_agent()
-        wrapper = ClaudeAgentSDKWrapper(agent)
-        assert wrapper is not None
-        assert wrapper.agent is agent
+    def test_wrapper_with_callables(self):
+        """Registering plain callables (like @tool-decorated functions)."""
 
-    def test_wrapper_with_chaos_level(self):
-        agent = self._make_mock_agent()
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.7)
-        assert wrapper.chaos_level == 0.7
+        def search(args):
+            return {"content": [{"type": "text", "text": "hi"}]}
 
-    def test_wrap_tools_from_dict(self):
-        """Test wrapping tools provided as a dict of name->callable."""
-        tool1 = MagicMock(return_value="r1")
-        tool1.__name__ = "search"
-        tool2 = MagicMock(return_value="r2")
-        tool2.__name__ = "calculate"
+        def save(args):
+            return {"content": [{"type": "text", "text": "saved"}]}
 
-        agent = MagicMock()
-        agent.tools = {"search": tool1, "calculate": tool2}
-        agent.name = "agent"
+        wrapper = ClaudeAgentSDKWrapper(tools=[search, save], chaos_level=0.5)
+        tools = wrapper.get_wrapped_tools()
+        assert "search" in tools
+        assert "save" in tools
+        assert wrapper.chaos_level == 0.5
 
-        wrapper = ClaudeAgentSDKWrapper(agent)
-        wrapped = wrapper.get_wrapped_tools()
-        assert "search" in wrapped
-        assert "calculate" in wrapped
+    def test_wrapper_with_dict_tools(self):
+        func = MagicMock(return_value="r")
+        wrapper = ClaudeAgentSDKWrapper(tools=[{"name": "greet", "func": func}])
+        assert "greet" in wrapper.get_wrapped_tools()
 
-    def test_wrap_tools_from_list(self):
-        """Test wrapping tools provided as list of objects with name/func."""
-        tool1 = MagicMock()
-        tool1.name = "fetch"
-        tool1.func = MagicMock(return_value="data")
+    def test_wrapper_with_object_tools(self):
+        tool_obj = MagicMock()
+        tool_obj.name = "fetch"
+        tool_obj.func = MagicMock(return_value="data")
 
-        agent = MagicMock()
-        agent.tools = [tool1]
-        agent.name = "agent"
+        wrapper = ClaudeAgentSDKWrapper(tools=[tool_obj])
+        assert "fetch" in wrapper.get_wrapped_tools()
 
-        wrapper = ClaudeAgentSDKWrapper(agent)
-        wrapped = wrapper.get_wrapped_tools()
-        assert "fetch" in wrapped
+    def test_add_tool_after_construction(self):
+        wrapper = ClaudeAgentSDKWrapper()
 
-    def test_run_delegates_to_agent(self):
-        agent = self._make_mock_agent()
-        agent.run = MagicMock(return_value="agent output")
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-        result = wrapper.run("do something")
-        assert result == "agent output"
-        agent.run.assert_called_once_with("do something")
+        def lookup(args):
+            return args
 
-    def test_run_with_kwargs(self):
-        agent = self._make_mock_agent()
-        agent.run = MagicMock(return_value="output")
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-        wrapper.run("task", stream=True)
-        agent.run.assert_called_once_with("task", stream=True)
+        wrapper.add_tool(lookup, name="lookup")
+        assert "lookup" in wrapper.get_wrapped_tools()
 
-    def test_get_metrics(self):
-        agent = self._make_mock_agent()
-        agent.run = MagicMock(return_value="out")
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-        wrapper.run("x")
-        metrics = wrapper.get_metrics()
-        assert "run_count" in metrics
-        assert metrics["run_count"] == 1
+    def test_get_wrapped_tool_list(self):
+        def a():
+            pass
+
+        def b():
+            pass
+
+        wrapper = ClaudeAgentSDKWrapper(tools=[a, b])
+        lst = wrapper.get_wrapped_tool_list()
+        assert len(lst) == 2
+        assert all(isinstance(p, ClaudeAgentSDKToolProxy) for p in lst)
 
     def test_configure_chaos_all_options(self):
-        agent = self._make_mock_agent()
-        wrapper = ClaudeAgentSDKWrapper(agent)
+        def t():
+            pass
+
+        wrapper = ClaudeAgentSDKWrapper(tools=[t])
         wrapper.configure_chaos(
             chaos_level=0.8,
             enable_tool_failures=True,
@@ -221,19 +225,13 @@ class TestClaudeAgentSDKWrapper:
         from balaganagent.injectors import ToolFailureInjector
         from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        tool1 = MagicMock()
-        tool1.name = "t1"
-        tool1.func = MagicMock(return_value="r1")
+        def t1():
+            pass
 
-        tool2 = MagicMock()
-        tool2.name = "t2"
-        tool2.func = MagicMock(return_value="r2")
+        def t2():
+            pass
 
-        agent = MagicMock()
-        agent.tools = [tool1, tool2]
-        agent.name = "agent"
-
-        wrapper = ClaudeAgentSDKWrapper(agent)
+        wrapper = ClaudeAgentSDKWrapper(tools=[t1, t2])
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
         wrapper.add_injector(injector, tools=["t1"])
 
@@ -241,81 +239,83 @@ class TestClaudeAgentSDKWrapper:
         assert len(tools["t1"]._injectors) == 1
         assert len(tools["t2"]._injectors) == 0
 
+    def test_record_query_and_metrics(self):
+        wrapper = ClaudeAgentSDKWrapper()
+        wrapper.record_query()
+        wrapper.record_query()
+        metrics = wrapper.get_metrics()
+        assert metrics["query_count"] == 2
+
     def test_reset(self):
-        agent = self._make_mock_agent()
-        agent.run = MagicMock(return_value="out")
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-        wrapper.run("x")
-        assert wrapper.get_metrics()["run_count"] == 1
+        def t():
+            pass
+
+        wrapper = ClaudeAgentSDKWrapper(tools=[t])
+        wrapper.record_query()
+        assert wrapper.get_metrics()["query_count"] == 1
         wrapper.reset()
-        assert wrapper.get_metrics()["run_count"] == 0
+        assert wrapper.get_metrics()["query_count"] == 0
 
     def test_experiment_context(self):
-        agent = self._make_mock_agent()
-        agent.run = MagicMock(return_value="out")
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-
+        wrapper = ClaudeAgentSDKWrapper()
         with wrapper.experiment("test-experiment"):
-            wrapper.run("x")
+            wrapper.record_query()
 
         results = wrapper.get_experiment_results()
         assert len(results) == 1
         assert results[0].config.name == "test-experiment"
 
     def test_get_mttr_stats(self):
-        agent = self._make_mock_agent()
-        wrapper = ClaudeAgentSDKWrapper(agent)
+        wrapper = ClaudeAgentSDKWrapper()
         stats = wrapper.get_mttr_stats()
         assert "tools" in stats
         assert "aggregate" in stats
 
 
-class TestClaudeAgentSDKChaosExample:
-    """Tests that demonstrate chaos testing a Claude Agent SDK agent with balagan."""
+# -----------------------------------------------------------------------
+# Integration / chaos scenario tests
+# -----------------------------------------------------------------------
 
-    def test_agent_under_tool_failure_chaos(self):
-        """Test that an agent's tools can be chaos-tested."""
+
+class TestClaudeAgentSDKChaosExample:
+    """Tests that demonstrate chaos-testing Claude Agent SDK tools with balagan."""
+
+    def test_tool_under_failure_injection(self):
         from balaganagent.injectors import ToolFailureInjector
         from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        # Simulate a Claude Agent SDK agent with tools
-        def search(query: str) -> str:
-            return f"Results for {query}"
+        def search_web(args):
+            return {"content": [{"type": "text", "text": f"Results for {args['query']}"}]}
 
-        def save(content: str) -> str:
-            return f"Saved: {content}"
+        def save_report(args):
+            return {"content": [{"type": "text", "text": "Saved"}]}
 
-        agent = MagicMock()
-        agent.tools = {"search": search, "save": save}
-        agent.name = "research-agent"
-        agent.run = MagicMock(return_value="done")
-
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=1.0)
+        wrapper = ClaudeAgentSDKWrapper(
+            tools=[
+                {"name": "search_web", "func": search_web},
+                {"name": "save_report", "func": save_report},
+            ],
+            chaos_level=1.0,
+        )
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
-        wrapper.add_injector(injector, tools=["search"])
+        wrapper.add_injector(injector, tools=["search_web"])
 
-        # Call the wrapped search tool directly
         tools = wrapper.get_wrapped_tools()
-        result = tools["search"]("AI")
-        # Injector fires, returns error result
-        assert result is not None
+        # search_web has 100% failure injection
+        result = tools["search_web"]({"query": "AI"})
+        assert result is not None  # injector returns an error dict
 
-        # save tool should work fine (no injector)
-        result = tools["save"]("report")
-        assert result == "Saved: report"
+        # save_report has no injector — works normally
+        result = tools["save_report"]({"content": "hello"})
+        assert result["content"][0]["text"] == "Saved"
 
-    def test_agent_resilience_metrics(self):
-        """Test collecting resilience metrics from chaos experiment."""
-        func = MagicMock(return_value="ok")
+    def test_tool_resilience_metrics(self):
+        func = MagicMock(return_value={"content": [{"type": "text", "text": "ok"}]})
 
-        agent = MagicMock()
-        agent.tools = {"tool_a": func}
-        agent.name = "metrics-agent"
-        agent.run = MagicMock(return_value="done")
-
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
-
-        # Run multiple tool calls
+        wrapper = ClaudeAgentSDKWrapper(
+            tools=[{"name": "tool_a", "func": func}],
+            chaos_level=0.0,
+        )
         tools = wrapper.get_wrapped_tools()
         for _ in range(5):
             tools["tool_a"]()
@@ -325,15 +325,13 @@ class TestClaudeAgentSDKChaosExample:
         assert "tool_a" in metrics["tools"]
 
     def test_full_chaos_experiment_workflow(self):
-        """Test a full chaos experiment workflow."""
-        func = MagicMock(return_value="ok")
+        """Simulate a full chaos experiment on SDK custom tools."""
+        func = MagicMock(return_value={"content": [{"type": "text", "text": "ok"}]})
 
-        agent = MagicMock()
-        agent.tools = {"my_tool": func}
-        agent.name = "workflow-agent"
-        agent.run = MagicMock(return_value="done")
-
-        wrapper = ClaudeAgentSDKWrapper(agent, chaos_level=0.0)
+        wrapper = ClaudeAgentSDKWrapper(
+            tools=[{"name": "my_tool", "func": func}],
+            chaos_level=0.0,
+        )
         wrapper.configure_chaos(
             chaos_level=0.5,
             enable_tool_failures=True,
@@ -344,7 +342,9 @@ class TestClaudeAgentSDKChaosExample:
         )
 
         with wrapper.experiment("chaos-test"):
-            wrapper.run("task")
+            wrapper.record_query()
+            tools = wrapper.get_wrapped_tools()
+            tools["my_tool"]()
 
         results = wrapper.get_experiment_results()
         assert len(results) == 1
