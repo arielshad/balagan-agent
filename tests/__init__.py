@@ -1,1 +1,1 @@
-"""Tests for AgentChaos."""
+"""Tests for BalaganAgent."""

@@ -6,7 +6,7 @@ conversations.
 
 Example usage:
     from autogen import AssistantAgent, UserProxyAgent
-    from agentchaos.wrappers.autogen import AutoGenWrapper
+    from balaganagent.wrappers.autogen import AutoGenWrapper
 
     # Create your agents
     assistant = AssistantAgent("assistant", llm_config=config)

@@ -1,8 +1,8 @@
 """Tests for the chaos engine."""
 
 
-from agentchaos import ChaosEngine
-from agentchaos.experiment import ExperimentConfig, ExperimentStatus
+from balaganagent import ChaosEngine
+from balaganagent.experiment import ExperimentConfig, ExperimentStatus
 
 
 class TestChaosEngine:
@@ -74,8 +74,8 @@ class TestChaosEngine:
     def test_add_custom_injector(self):
         engine = ChaosEngine()
 
-        from agentchaos.injectors import DelayInjector
-        from agentchaos.injectors.delay import DelayConfig
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
 
         custom = DelayInjector(DelayConfig(probability=0.5))
         engine.add_injector("custom_delay", custom)
@@ -116,7 +116,7 @@ class TestExperiment:
     """Tests for Experiment class."""
 
     def test_experiment_lifecycle(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test")
         exp = Experiment(config)
@@ -131,7 +131,7 @@ class TestExperiment:
         assert result.config.name == "test"
 
     def test_experiment_abort(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test")
         exp = Experiment(config)
@@ -141,7 +141,7 @@ class TestExperiment:
         assert exp.status == ExperimentStatus.ABORTED
 
     def test_operation_context(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test")
         exp = Experiment(config)
@@ -155,7 +155,7 @@ class TestExperiment:
         assert result.successful_operations == 1
 
     def test_operation_failure(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test")
         exp = Experiment(config)
@@ -168,7 +168,7 @@ class TestExperiment:
         assert result.failed_operations == 1
 
     def test_should_continue_duration(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test", duration_seconds=0.001)
         exp = Experiment(config)
@@ -180,7 +180,7 @@ class TestExperiment:
         assert exp.should_continue() is False
 
     def test_should_continue_iterations(self):
-        from agentchaos.experiment import Experiment
+        from balaganagent.experiment import Experiment
 
         config = ExperimentConfig(name="test", max_iterations=2)
         exp = Experiment(config)

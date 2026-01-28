@@ -2,14 +2,14 @@
 
 import time
 
-from agentchaos.metrics import (
+from balaganagent.metrics import (
     MetricsCollector,
     MTTRCalculator,
     RecoveryQualityAnalyzer,
     ReliabilityScorer,
 )
-from agentchaos.metrics.recovery import RecoveryQuality
-from agentchaos.metrics.reliability import ReliabilityGrade
+from balaganagent.metrics.recovery import RecoveryQuality
+from balaganagent.metrics.reliability import ReliabilityGrade
 
 
 class TestMetricsCollector:
@@ -67,7 +67,7 @@ class TestMetricsCollector:
         collector.increment("test_counter", 5)
 
         output = collector.export_prometheus()
-        assert "agentchaos_test_counter 5" in output
+        assert "balaganagent_test_counter 5" in output
 
 
 class TestMTTRCalculator:

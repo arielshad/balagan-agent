@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Command-line interface for AgentChaos."""
+"""Command-line interface for BalaganAgent."""
 
 import argparse
 import json
@@ -15,14 +15,14 @@ from .verbose import set_verbose
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="agentchaos",
+        prog="balaganagent",
         description="Chaos engineering framework for AI agents",
     )
 
     parser.add_argument(
         "--version",
         action="version",
-        version=f"agentchaos {__version__}",
+        version=f"balaganagent {__version__}",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -261,7 +261,7 @@ def run_demo(args):
         set_verbose(True)
 
     print(f"\n{'='*60}")
-    print("  AGENTCHAOS DEMO")
+    print("  BALAGANAGENT DEMO")
     print(f"{'='*60}\n")
     print(f"Running demo with chaos level: {args.chaos_level}")
     if args.verbose:
@@ -354,17 +354,17 @@ class SampleAgent:
         "output_directory": "reports",
     }
 
-    config_file = directory / "agentchaos.json"
+    config_file = directory / "balaganagent.json"
     config_file.write_text(json.dumps(config, indent=2))
 
-    print(f"Initialized AgentChaos project in {directory}")
+    print(f"Initialized BalaganAgent project in {directory}")
     print(f"  Created: {scenario_file}")
     print(f"  Created: {agent_file}")
     print(f"  Created: {config_file}")
     print()
     print("To run the sample scenario:")
     print(f"  cd {directory}")
-    print("  agentchaos run scenarios/sample.json --agent agent:SampleAgent")
+    print("  balaganagent run scenarios/sample.json --agent agent:SampleAgent")
 
 
 def load_agent(agent_spec: str):

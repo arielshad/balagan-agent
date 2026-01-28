@@ -1,5 +1,5 @@
 """
-AgentChaos - Chaos Engineering Framework for AI Agents
+BalaganAgent - Chaos Engineering Framework for AI Agents
 
 A reliability testing framework that stress-tests AI agents through:
 - Random tool failures

@@ -1,27 +1,27 @@
-"""CrewAI wrapper for chaos injection.
+"""LangChain wrapper for chaos injection.
 
-This module provides chaos engineering capabilities for CrewAI agents and crews.
-It wraps CrewAI tools and enables fault injection during crew execution.
+This module provides chaos engineering capabilities for LangChain agents and chains.
+It wraps LangChain tools and enables fault injection during agent execution.
 
 Example usage:
-    from crewai import Agent, Task, Crew
-    from agentchaos.wrappers.crewai import CrewAIWrapper
+    from langchain.agents import AgentExecutor
+    from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
-    # Create your crew
-    crew = Crew(agents=[agent1, agent2], tasks=[task1, task2])
+    # Create your agent executor
+    agent_executor = AgentExecutor(agent=agent, tools=tools)
 
     # Wrap with chaos
-    wrapper = CrewAIWrapper(crew, chaos_level=0.5)
+    wrapper = LangChainAgentWrapper(agent_executor, chaos_level=0.5)
     wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
 
     # Run with chaos injection
-    result = wrapper.kickoff()
+    result = wrapper.invoke({"input": "Hello"})
 """
 
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, AsyncIterator, Iterator, Optional
 
 from ..experiment import Experiment, ExperimentConfig, ExperimentResult
 from ..injectors import (
@@ -33,12 +33,11 @@ from ..injectors import (
     ToolFailureInjector,
 )
 from ..metrics import MetricsCollector, MTTRCalculator
-from ..verbose import get_logger
 
 
 @dataclass
-class CrewAIToolCall:
-    """Record of a CrewAI tool call."""
+class LangChainToolCall:
+    """Record of a LangChain tool call."""
 
     tool_name: str
     args: tuple
@@ -49,7 +48,6 @@ class CrewAIToolCall:
     error: Optional[str] = None
     fault_injected: Optional[str] = None
     retries: int = 0
-    agent_name: Optional[str] = None
 
     @property
     def duration_ms(self) -> float:
@@ -62,11 +60,20 @@ class CrewAIToolCall:
         return self.error is None
 
 
-class CrewAIToolProxy:
-    """
-    Proxy for CrewAI tool objects that enables chaos injection.
+@dataclass
+class CallbackEvent:
+    """Record of a callback event."""
 
-    CrewAI tools have a specific structure with `name` and `func` attributes.
+    event_type: str
+    timestamp: float
+    data: dict
+
+
+class LangChainToolProxy:
+    """
+    Proxy for LangChain tool objects that enables chaos injection.
+
+    LangChain tools have a specific structure with `name` and `func` attributes.
     This proxy wraps the tool's function to inject faults.
     """
 
@@ -76,17 +83,15 @@ class CrewAIToolProxy:
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
-        verbose: bool = False,
     ):
         """
         Initialize the tool proxy.
 
         Args:
-            tool: CrewAI tool object with `name` and `func` attributes
+            tool: LangChain tool object with `name` and `func` attributes
             chaos_level: Chaos level (0.0 = no chaos, 1.0 = full chaos)
             max_retries: Maximum retry attempts on failure
             retry_delay: Delay between retries in seconds
-            verbose: Enable verbose logging
         """
         self._tool = tool
         self._tool_name = getattr(tool, "name", str(tool))
@@ -94,11 +99,9 @@ class CrewAIToolProxy:
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self.verbose = verbose
-        self._logger = get_logger()
 
         self._injectors: list[BaseInjector] = []
-        self._call_history: list[CrewAIToolCall] = []
+        self._call_history: list[LangChainToolCall] = []
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
 
@@ -120,7 +123,7 @@ class CrewAIToolProxy:
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the tool with chaos injection."""
-        call = CrewAIToolCall(
+        call = LangChainToolCall(
             tool_name=self._tool_name,
             args=args,
             kwargs=kwargs,
@@ -132,10 +135,6 @@ class CrewAIToolProxy:
             "args": args,
             "kwargs": kwargs,
         }
-
-        # Verbose logging: tool call
-        if self.verbose:
-            self._logger.tool_call(self._tool_name, args, kwargs)
 
         retries = 0
         last_error = None
@@ -179,13 +178,6 @@ class CrewAIToolProxy:
                         retries=retries,
                         success=True,
                     )
-                    # Verbose logging: recovery
-                    if self.verbose:
-                        self._logger.recovery(self._tool_name, retries, True)
-
-                # Verbose logging: result
-                if self.verbose:
-                    self._logger.tool_result(result, call.duration_ms)
 
                 self._call_history.append(call)
                 self._metrics.record_operation(
@@ -204,9 +196,6 @@ class CrewAIToolProxy:
                 call.retries = retries
 
                 if retries <= self._max_retries:
-                    # Verbose logging: retry
-                    if self.verbose:
-                        self._logger.retry(retries, self._max_retries, self._retry_delay)
                     time.sleep(self._retry_delay)
                 else:
                     break
@@ -232,17 +221,10 @@ class CrewAIToolProxy:
                 retries=retries,
                 success=False,
             )
-            # Verbose logging: failed recovery
-            if self.verbose:
-                self._logger.recovery(self._tool_name, retries, False)
-
-        # Verbose logging: error
-        if self.verbose:
-            self._logger.tool_error(last_error, call.duration_ms)
 
         raise last_error  # type: ignore
 
-    def get_call_history(self) -> list[CrewAIToolCall]:
+    def get_call_history(self) -> list[LangChainToolCall]:
         """Get call history."""
         return self._call_history.copy()
 
@@ -259,44 +241,145 @@ class CrewAIToolProxy:
             injector.reset()
 
 
-class CrewAIWrapper:
+class ChaosCallbackHandler:
     """
-    Wrapper for CrewAI Crew objects that enables chaos engineering.
+    LangChain callback handler that records events and can inject chaos.
 
-    This wrapper intercepts tool calls from all agents in the crew
-    and injects faults according to the configured chaos level.
+    This handler integrates with LangChain's callback system to track
+    LLM calls, tool usage, and chain execution.
+    """
+
+    def __init__(self, chaos_level: float = 0.0):
+        """
+        Initialize the callback handler.
+
+        Args:
+            chaos_level: Chaos level for injection (0.0-1.0)
+        """
+        self.chaos_level = chaos_level
+        self._events: list[CallbackEvent] = []
+        self._tool_calls = 0
+        self._llm_calls = 0
+        self._chain_runs = 0
+
+    def on_llm_start(self, serialized: dict, prompts: list, **kwargs):
+        """Called when LLM starts."""
+        self._llm_calls += 1
+        self._events.append(
+            CallbackEvent(
+                event_type="llm_start",
+                timestamp=time.time(),
+                data={"serialized": serialized, "prompts": prompts},
+            )
+        )
+
+    def on_llm_end(self, response, **kwargs):
+        """Called when LLM ends."""
+        self._events.append(
+            CallbackEvent(
+                event_type="llm_end",
+                timestamp=time.time(),
+                data={"response": str(response)},
+            )
+        )
+
+    def on_tool_start(self, serialized: dict, input_str: str, **kwargs):
+        """Called when tool starts."""
+        self._tool_calls += 1
+        self._events.append(
+            CallbackEvent(
+                event_type="tool_start",
+                timestamp=time.time(),
+                data={"serialized": serialized, "input": input_str},
+            )
+        )
+
+    def on_tool_end(self, output: str, **kwargs):
+        """Called when tool ends."""
+        self._events.append(
+            CallbackEvent(
+                event_type="tool_end",
+                timestamp=time.time(),
+                data={"output": output},
+            )
+        )
+
+    def on_chain_start(self, serialized: dict, inputs: dict, **kwargs):
+        """Called when chain starts."""
+        self._chain_runs += 1
+        self._events.append(
+            CallbackEvent(
+                event_type="chain_start",
+                timestamp=time.time(),
+                data={"serialized": serialized, "inputs": inputs},
+            )
+        )
+
+    def on_chain_end(self, outputs: dict, **kwargs):
+        """Called when chain ends."""
+        self._events.append(
+            CallbackEvent(
+                event_type="chain_end",
+                timestamp=time.time(),
+                data={"outputs": outputs},
+            )
+        )
+
+    def get_events(self) -> list[CallbackEvent]:
+        """Get all recorded events."""
+        return self._events.copy()
+
+    def get_metrics(self) -> dict[str, Any]:
+        """Get callback metrics."""
+        return {
+            "tool_calls": self._tool_calls,
+            "llm_calls": self._llm_calls,
+            "chain_runs": self._chain_runs,
+            "total_events": len(self._events),
+        }
+
+    def reset(self):
+        """Reset callback state."""
+        self._events.clear()
+        self._tool_calls = 0
+        self._llm_calls = 0
+        self._chain_runs = 0
+
+
+class LangChainAgentWrapper:
+    """
+    Wrapper for LangChain AgentExecutor that enables chaos engineering.
+
+    This wrapper intercepts tool calls from the agent and injects faults
+    according to the configured chaos level.
     """
 
     def __init__(
         self,
-        crew: Any,
+        agent_executor: Any,
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
-        verbose: bool = False,
     ):
         """
-        Initialize the CrewAI wrapper.
+        Initialize the LangChain agent wrapper.
 
         Args:
-            crew: CrewAI Crew object
+            agent_executor: LangChain AgentExecutor object
             chaos_level: Initial chaos level (0.0-1.0)
             max_retries: Default max retries for tool calls
             retry_delay: Default retry delay in seconds
-            verbose: Enable verbose logging
         """
-        self._crew = crew
+        self._agent_executor = agent_executor
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self.verbose = verbose
-        self._logger = get_logger()
 
-        self._tool_proxies: dict[str, CrewAIToolProxy] = {}
+        self._tool_proxies: dict[str, LangChainToolProxy] = {}
         self._injectors: list[BaseInjector] = []
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
-        self._kickoff_count = 0
+        self._invoke_count = 0
 
         self._experiments: list[Experiment] = []
         self._experiment_results: list[ExperimentResult] = []
@@ -305,9 +388,9 @@ class CrewAIWrapper:
         self._wrap_tools()
 
     @property
-    def crew(self) -> Any:
-        """Get the wrapped crew."""
-        return self._crew
+    def agent_executor(self) -> Any:
+        """Get the wrapped agent executor."""
+        return self._agent_executor
 
     @property
     def chaos_level(self) -> float:
@@ -315,28 +398,24 @@ class CrewAIWrapper:
         return self._chaos_level
 
     def _wrap_tools(self):
-        """Wrap all tools from all agents in the crew."""
-        agents = getattr(self._crew, "agents", [])
+        """Wrap all tools from the agent."""
+        tools = getattr(self._agent_executor, "tools", [])
 
-        for agent in agents:
-            agent_tools = getattr(agent, "tools", [])
+        for tool in tools:
+            tool_name = getattr(tool, "name", str(tool))
 
-            for tool in agent_tools:
-                tool_name = getattr(tool, "name", str(tool))
+            if tool_name not in self._tool_proxies:
+                proxy = LangChainToolProxy(
+                    tool,
+                    chaos_level=self._chaos_level,
+                    max_retries=self._max_retries,
+                    retry_delay=self._retry_delay,
+                )
+                self._tool_proxies[tool_name] = proxy
 
-                if tool_name not in self._tool_proxies:
-                    proxy = CrewAIToolProxy(
-                        tool,
-                        chaos_level=self._chaos_level,
-                        max_retries=self._max_retries,
-                        retry_delay=self._retry_delay,
-                        verbose=self.verbose,
-                    )
-                    self._tool_proxies[tool_name] = proxy
-
-                    # Replace the tool's func with our proxy
-                    if hasattr(tool, "func"):
-                        tool.func = proxy
+                # Replace the tool's func with our proxy
+                if hasattr(tool, "func"):
+                    tool.func = proxy
 
     def configure_chaos(
         self,
@@ -385,7 +464,9 @@ class CrewAIWrapper:
 
         if enable_context_corruption:
             self._injectors.append(
-                ContextCorruptionInjector(ContextCorruptionConfig(probability=base_prob * 0.3))
+                ContextCorruptionInjector(
+                    ContextCorruptionConfig(probability=base_prob * 0.3)
+                )
             )
 
         if enable_budget_exhaustion:
@@ -414,25 +495,134 @@ class CrewAIWrapper:
             if name in self._tool_proxies:
                 self._tool_proxies[name].add_injector(injector)
 
-    def get_wrapped_tools(self) -> dict[str, CrewAIToolProxy]:
+    def get_wrapped_tools(self) -> dict[str, LangChainToolProxy]:
         """Get dictionary of wrapped tools."""
         return self._tool_proxies.copy()
 
-    def kickoff(self, inputs: Optional[dict[str, Any]] = None) -> Any:
+    def invoke(self, input_data: dict, config: Optional[dict] = None, **kwargs) -> Any:
         """
-        Execute the crew with chaos injection.
+        Invoke the agent with chaos injection.
 
         Args:
-            inputs: Optional input dictionary for the crew
+            input_data: Input dictionary for the agent
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
 
         Returns:
-            The crew's output
+            The agent's output
         """
-        self._kickoff_count += 1
+        self._invoke_count += 1
 
-        if inputs is not None:
-            return self._crew.kickoff(inputs=inputs)
-        return self._crew.kickoff()
+        if config is not None:
+            kwargs["config"] = config
+
+        return self._agent_executor.invoke(input_data, **kwargs)
+
+    async def ainvoke(
+        self, input_data: dict, config: Optional[dict] = None, **kwargs
+    ) -> Any:
+        """
+        Async invoke the agent with chaos injection.
+
+        Args:
+            input_data: Input dictionary for the agent
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            The agent's output
+        """
+        self._invoke_count += 1
+
+        if config is not None:
+            kwargs["config"] = config
+
+        return await self._agent_executor.ainvoke(input_data, **kwargs)
+
+    def stream(
+        self, input_data: dict, config: Optional[dict] = None, **kwargs
+    ) -> Iterator[Any]:
+        """
+        Stream responses from the agent.
+
+        Args:
+            input_data: Input dictionary for the agent
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
+
+        Yields:
+            Response chunks
+        """
+        self._invoke_count += 1
+
+        if config is not None:
+            kwargs["config"] = config
+
+        yield from self._agent_executor.stream(input_data, **kwargs)
+
+    async def astream(
+        self, input_data: dict, config: Optional[dict] = None, **kwargs
+    ) -> AsyncIterator[Any]:
+        """
+        Async stream responses from the agent.
+
+        Args:
+            input_data: Input dictionary for the agent
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
+
+        Yields:
+            Response chunks
+        """
+        self._invoke_count += 1
+
+        if config is not None:
+            kwargs["config"] = config
+
+        async for chunk in self._agent_executor.astream(input_data, **kwargs):
+            yield chunk
+
+    def batch(
+        self, inputs: list[dict], config: Optional[dict] = None, **kwargs
+    ) -> list[Any]:
+        """
+        Batch invoke the agent.
+
+        Args:
+            inputs: List of input dictionaries
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            List of agent outputs
+        """
+        self._invoke_count += len(inputs)
+
+        if config is not None:
+            kwargs["config"] = config
+
+        return self._agent_executor.batch(inputs, **kwargs)
+
+    async def abatch(
+        self, inputs: list[dict], config: Optional[dict] = None, **kwargs
+    ) -> list[Any]:
+        """
+        Async batch invoke the agent.
+
+        Args:
+            inputs: List of input dictionaries
+            config: Optional config dictionary
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            List of agent outputs
+        """
+        self._invoke_count += len(inputs)
+
+        if config is not None:
+            kwargs["config"] = config
+
+        return await self._agent_executor.abatch(inputs, **kwargs)
 
     def get_metrics(self) -> dict[str, Any]:
         """Get comprehensive metrics."""
@@ -441,7 +631,7 @@ class CrewAIWrapper:
             tool_metrics[name] = proxy.get_metrics()
 
         return {
-            "kickoff_count": self._kickoff_count,
+            "invoke_count": self._invoke_count,
             "tools": tool_metrics,
             "aggregate": self._metrics.get_summary(),
         }
@@ -459,7 +649,7 @@ class CrewAIWrapper:
 
     def reset(self):
         """Reset wrapper state."""
-        self._kickoff_count = 0
+        self._invoke_count = 0
         for proxy in self._tool_proxies.values():
             proxy.reset()
         self._metrics.reset()
@@ -498,3 +688,67 @@ class CrewAIWrapper:
     def get_experiment_results(self) -> list[ExperimentResult]:
         """Get all experiment results."""
         return self._experiment_results.copy()
+
+
+class LangChainChainWrapper:
+    """
+    Wrapper for LangChain chains (LCEL) that enables chaos engineering.
+
+    This wrapper works with any Runnable chain and can inject faults
+    during chain execution.
+    """
+
+    def __init__(
+        self,
+        chain: Any,
+        chaos_level: float = 0.0,
+    ):
+        """
+        Initialize the chain wrapper.
+
+        Args:
+            chain: LangChain chain/Runnable object
+            chaos_level: Initial chaos level (0.0-1.0)
+        """
+        self._chain = chain
+        self._chaos_level = chaos_level
+        self._invoke_count = 0
+        self._metrics = MetricsCollector()
+        self._injectors: list[BaseInjector] = []
+
+    @property
+    def chain(self) -> Any:
+        """Get the wrapped chain."""
+        return self._chain
+
+    @property
+    def chaos_level(self) -> float:
+        """Get current chaos level."""
+        return self._chaos_level
+
+    def invoke(self, input_data: dict, **kwargs) -> Any:
+        """Invoke the chain."""
+        self._invoke_count += 1
+        return self._chain.invoke(input_data, **kwargs)
+
+    def stream(self, input_data: dict, **kwargs) -> Iterator[Any]:
+        """Stream from the chain."""
+        self._invoke_count += 1
+        yield from self._chain.stream(input_data, **kwargs)
+
+    def batch(self, inputs: list[dict], **kwargs) -> list[Any]:
+        """Batch invoke the chain."""
+        self._invoke_count += len(inputs)
+        return self._chain.batch(inputs, **kwargs)
+
+    def get_metrics(self) -> dict[str, Any]:
+        """Get metrics."""
+        return {
+            "invoke_count": self._invoke_count,
+            "aggregate": self._metrics.get_summary(),
+        }
+
+    def reset(self):
+        """Reset wrapper state."""
+        self._invoke_count = 0
+        self._metrics.reset()

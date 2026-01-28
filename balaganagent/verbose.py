@@ -1,4 +1,4 @@
-"""Verbose logging utilities for AgentChaos."""
+"""Verbose logging utilities for BalaganAgent."""
 
 import sys
 import time
@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 class VerboseLogger:
     """
-    Logger for verbose output in AgentChaos.
+    Logger for verbose output in BalaganAgent.
 
     Provides colored, structured logging for chaos engineering events
     including tool calls, fault injections, and experiment progress.

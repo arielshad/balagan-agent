@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Stress testing example for AgentChaos.
+Stress testing example for BalaganAgent.
 
 This example demonstrates how to run stress tests
 to find the breaking point of an agent.
 """
 
-from agentchaos import AgentWrapper, ExperimentRunner
-from agentchaos.runner import scenario
+from balaganagent import AgentWrapper, ExperimentRunner
+from balaganagent.runner import scenario
 
 
 class RobustAgent:
@@ -33,7 +33,7 @@ class RobustAgent:
 def run_stress_test():
     """Run a comprehensive stress test."""
     print("\n" + "=" * 60)
-    print("AGENTCHAOS STRESS TEST")
+    print("BALAGANAGENT STRESS TEST")
     print("=" * 60 + "\n")
 
     agent = RobustAgent()

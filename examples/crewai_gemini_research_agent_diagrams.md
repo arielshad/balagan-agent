@@ -134,4 +134,4 @@ flowchart LR
 ### Process Flow
 - Sequential execution: Researcher → Writer
 - Task context passing: Research findings are provided to the Writer
-- Deterministic tools enable reliable testing and stress testing with AgentChaos
+- Deterministic tools enable reliable testing and stress testing with BalaganAgent

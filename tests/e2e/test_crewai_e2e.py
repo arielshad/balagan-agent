@@ -79,7 +79,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_simple_crew_workflow_no_chaos(self):
         """Test a simple crew workflow without chaos injection."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         # Create mock tools
         def search_tool(query: str) -> dict:
@@ -124,9 +124,9 @@ class TestCrewAIE2EWorkflow:
 
     def test_crew_workflow_with_tool_failure_injection(self):
         """Test crew workflow with tool failure chaos injection."""
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         call_count = 0
 
@@ -159,9 +159,9 @@ class TestCrewAIE2EWorkflow:
     def test_crew_workflow_with_delays(self):
         """Test crew workflow with artificial delays."""
 
-        from agentchaos.injectors import DelayInjector
-        from agentchaos.injectors.delay import DelayConfig
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         def fast_tool(x: str) -> str:
             return f"fast: {x}"
@@ -184,7 +184,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_crew_workflow_with_experiment_tracking(self):
         """Test crew workflow within an experiment context."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         def simple_tool(x: str) -> str:
             return x
@@ -207,7 +207,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_multi_agent_crew_workflow(self):
         """Test complex crew with multiple agents and tools."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         # Create multiple tools
         def search_web(query: str) -> dict:
@@ -266,7 +266,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_chaos_level_configuration(self):
         """Test configuring different chaos levels."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         def simple_tool(x: str) -> str:
             return x
@@ -292,7 +292,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_metrics_collection_e2e(self):
         """Test comprehensive metrics collection during workflow."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         call_counts = {"search": 0, "process": 0}
 
@@ -324,7 +324,7 @@ class TestCrewAIE2EWorkflow:
 
     def test_reset_workflow_state(self):
         """Test resetting workflow state between experiments."""
-        from agentchaos.wrappers.crewai import CrewAIWrapper
+        from balaganagent.wrappers.crewai import CrewAIWrapper
 
         def tool_func(x: str) -> str:
             return x

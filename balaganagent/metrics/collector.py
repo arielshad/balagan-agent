@@ -273,16 +273,16 @@ class MetricsCollector:
 
         # Export counters
         for name, value in self._counters.items():
-            lines.append(f"agentchaos_{name} {value}")
+            lines.append(f"balaganagent_{name} {value}")
 
         # Export series summaries
         for name, series in self._series.items():
             if series.count > 0:
-                lines.append(f"agentchaos_{name}_count {series.count}")
-                lines.append(f"agentchaos_{name}_mean {series.mean()}")
-                lines.append(f"agentchaos_{name}_p50 {series.percentile(50)}")
-                lines.append(f"agentchaos_{name}_p90 {series.percentile(90)}")
-                lines.append(f"agentchaos_{name}_p99 {series.percentile(99)}")
+                lines.append(f"balaganagent_{name}_count {series.count}")
+                lines.append(f"balaganagent_{name}_mean {series.mean()}")
+                lines.append(f"balaganagent_{name}_p50 {series.percentile(50)}")
+                lines.append(f"balaganagent_{name}_p90 {series.percentile(90)}")
+                lines.append(f"balaganagent_{name}_p99 {series.percentile(99)}")
 
         return "\n".join(lines)
 

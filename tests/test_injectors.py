@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from agentchaos.injectors import (
+from balaganagent.injectors import (
     BudgetExhaustionInjector,
     ContextCorruptionInjector,
     DelayInjector,
@@ -12,11 +12,11 @@ from agentchaos.injectors import (
     InjectorConfig,
     ToolFailureInjector,
 )
-from agentchaos.injectors.budget import BudgetExhaustionConfig
-from agentchaos.injectors.context import ContextCorruptionConfig
-from agentchaos.injectors.delay import DelayConfig, DelayPattern
-from agentchaos.injectors.hallucination import HallucinationConfig
-from agentchaos.injectors.tool_failure import FailureMode, ToolFailureConfig
+from balaganagent.injectors.budget import BudgetExhaustionConfig
+from balaganagent.injectors.context import ContextCorruptionConfig
+from balaganagent.injectors.delay import DelayConfig, DelayPattern
+from balaganagent.injectors.hallucination import HallucinationConfig
+from balaganagent.injectors.tool_failure import FailureMode, ToolFailureConfig
 
 
 class TestInjectorConfig:
@@ -173,7 +173,7 @@ class TestContextCorruptionInjector:
         assert injector.config.truncation_ratio == 0.5
 
     def test_truncates_list(self):
-        from agentchaos.injectors.context import CorruptionType
+        from balaganagent.injectors.context import CorruptionType
 
         config = ContextCorruptionConfig(
             probability=1.0,
@@ -190,7 +190,7 @@ class TestContextCorruptionInjector:
         assert len(result) < len(original)
 
     def test_reorders_list(self):
-        from agentchaos.injectors.context import CorruptionType
+        from balaganagent.injectors.context import CorruptionType
 
         config = ContextCorruptionConfig(
             probability=1.0,

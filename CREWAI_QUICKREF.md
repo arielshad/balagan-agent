@@ -1,4 +1,4 @@
-# CrewAI + AgentChaos Quick Reference
+# CrewAI + BalaganAgent Quick Reference
 
 **One-page cheatsheet for chaos testing your CrewAI agents**
 
@@ -6,7 +6,7 @@
 
 ## Installation
 ```bash
-pip install agentchaos crewai
+pip install balaganagent crewai
 ```
 
 ---
@@ -14,7 +14,7 @@ pip install agentchaos crewai
 ## Basic Integration (3 Lines)
 
 ```python
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 wrapper = CrewAIWrapper(crew, chaos_level=0.5)
 wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
@@ -100,7 +100,7 @@ for tool_name, stats in mttr_stats['tools'].items():
 ## Enable Verbose Logging
 
 ```python
-from agentchaos import set_verbose
+from balaganagent import set_verbose
 
 # Global
 set_verbose(True)
@@ -127,8 +127,8 @@ for i in range(10):
 ## Custom Injectors
 
 ```python
-from agentchaos.injectors import ToolFailureInjector
-from agentchaos.injectors.tool_failure import ToolFailureConfig
+from balaganagent.injectors import ToolFailureInjector
+from balaganagent.injectors.tool_failure import ToolFailureConfig
 
 # Create wrapper
 wrapper = CrewAIWrapper(crew, chaos_level=0.0)
@@ -172,7 +172,7 @@ def test_crew_resilience():
 
 ```python
 from crewai import Agent, Task, Crew
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 # 1. Create your crew (as usual)
 agent = Agent(role="Researcher", goal="Find info", tools=[search_tool])
@@ -201,5 +201,5 @@ for tool_name, tool_metrics in metrics['tools'].items():
 ---
 
 📖 **Full Guide:** [CREWAI_INTEGRATION_GUIDE.md](CREWAI_INTEGRATION_GUIDE.md)
-🐛 **Issues:** [GitHub Issues](https://github.com/anthropics/agent-chaos/issues)
+🐛 **Issues:** [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
 ⭐ **Star the repo!**

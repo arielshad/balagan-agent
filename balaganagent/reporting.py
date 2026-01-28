@@ -144,7 +144,7 @@ class ReportGenerator:
     def to_markdown(self, report: dict[str, Any]) -> str:
         """Convert report to Markdown format."""
         lines = [
-            "# AgentChaos Experiment Report",
+            "# BalaganAgent Experiment Report",
             "",
             f"**Generated:** {report['generated_at']}",
             "",
@@ -231,7 +231,7 @@ class ReportGenerator:
         html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>AgentChaos Report</title>
+    <title>BalaganAgent Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; background: #f5f5f5; }}
         .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
@@ -250,7 +250,7 @@ class ReportGenerator:
 </head>
 <body>
     <div class="container">
-        <h1>AgentChaos Experiment Report</h1>
+        <h1>BalaganAgent Experiment Report</h1>
         <p>Generated: {report['generated_at']}</p>
         <p>Status: <span class="status-badge">{status_text}</span></p>
 
@@ -329,7 +329,7 @@ class ReportGenerator:
         lines = [
             "",
             f"{BOLD}{'='*60}{RESET}",
-            f"{BOLD}  AGENTCHAOS EXPERIMENT REPORT{RESET}",
+            f"{BOLD}  BALAGANAGENT EXPERIMENT REPORT{RESET}",
             f"{'='*60}",
             "",
             f"  Generated: {report['generated_at']}",
