@@ -24,7 +24,10 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import textwrap
+from contextlib import redirect_stdout
+from datetime import datetime
 from typing import Optional
 
 from crewai import Agent, Crew, Process, Task
@@ -44,7 +47,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 
-def get_gemini_llm(model: str = "gemini-3-flash-preview", temperature: float = 0.7):
+def get_gemini_llm(model: str = "gemini-3-flash-preview", temperature: float = 0.0):
     """Configure and return a Gemini model string for CrewAI's native provider.
 
     Args:
@@ -82,13 +85,8 @@ def search_web(query: str) -> str:
 
     Returns simulated search results for the given query.
     """
-    # Deterministic "search" — returns canned results keyed on the query.
-    return (
-        f"Search results for '{query}':\n"
-        f"1. '{query}' is a widely researched topic in computer science.\n"
-        f"2. Recent advances in {query.lower()} include improved algorithms.\n"
-        f"3. Experts recommend starting with foundational papers on {query.lower()}.\n"
-    )
+    # Deterministic "search" — returns concise results for faster processing
+    return f"Search results for '{query}': '{query}' is a widely researched topic with recent advances in improved algorithms."
 
 
 @tool("summarize_text")
@@ -127,12 +125,8 @@ def _make_search_web():
 
         Returns simulated search results for the given query.
         """
-        return (
-            f"Search results for '{query}':\n"
-            f"1. '{query}' is a widely researched topic in computer science.\n"
-            f"2. Recent advances in {query.lower()} include improved algorithms.\n"
-            f"3. Experts recommend starting with foundational papers on {query.lower()}.\n"
-        )
+        # Deterministic "search" — returns concise results for faster processing
+        return f"Search results for '{query}': '{query}' is a widely researched topic with recent advances in improved algorithms."
 
     return _search_web
 
@@ -193,7 +187,7 @@ def create_researcher_agent(llm: Optional[object] = None) -> Agent:
         backstory="You are an expert researcher who excels at finding and synthesizing information.",
         tools=[sw, st],
         llm=llm,
-        verbose=False,
+        verbose=True,
     )
 
 
@@ -214,21 +208,15 @@ def create_writer_agent(llm: Optional[object] = None) -> Agent:
         backstory="You are a skilled technical writer who turns research into polished reports.",
         tools=[st, sr],
         llm=llm,
-        verbose=False,
+        verbose=True,
     )
 
 
 def create_research_task(agent: Agent, topic: str) -> Task:
     """Create the research task for the given topic."""
     return Task(
-        description=textwrap.dedent(
-            f"""\
-            Research the topic: {topic}
-            Use the search_web tool to find information.
-            Use the summarize_text tool to condense findings.
-            Provide a detailed summary of your research."""
-        ),
-        expected_output="A detailed research summary with key findings.",
+        description=f"Research '{topic}'. Call search_web ONCE, then summarize the results briefly in 2-3 sentences.",
+        expected_output="A brief 2-3 sentence research summary.",
         agent=agent,
     )
 
@@ -236,13 +224,8 @@ def create_research_task(agent: Agent, topic: str) -> Task:
 def create_report_task(agent: Agent, research_task: Task) -> Task:
     """Create the report-writing task that depends on research."""
     return Task(
-        description=textwrap.dedent(
-            """\
-            Using the research provided, write a polished report.
-            Use the summarize_text tool if needed to tighten prose.
-            Use the save_report tool to persist the final report."""
-        ),
-        expected_output="A well-structured research report.",
+        description="Write a concise 1-paragraph report from the research. Call save_report with the final text.",
+        expected_output="A concise 1-paragraph report.",
         agent=agent,
         context=[research_task],
     )
@@ -274,7 +257,7 @@ def build_research_crew(
         agents=[researcher, writer],
         tasks=[research_task, report_task],
         process=Process.sequential,
-        verbose=False,
+        verbose=True,
     )
 
 
@@ -283,23 +266,62 @@ def build_research_crew(
 # ---------------------------------------------------------------------------
 
 
+class TeeOutput:
+    """Write to both file and console simultaneously."""
+
+    def __init__(self, file_handle):
+        self.file = file_handle
+        self.stdout = sys.stdout
+
+    def write(self, data):
+        self.stdout.write(data)
+        self.file.write(data)
+        self.file.flush()
+
+    def flush(self):
+        self.stdout.flush()
+        self.file.flush()
+
+
 def main():
     """Run the research crew with Gemini."""
-    import sys
-
     topic = sys.argv[1] if len(sys.argv) > 1 else "artificial intelligence"
 
+    # Create log file with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"crew_output_{timestamp}.log"
+
     print(f"\n🔍 Starting research on: {topic}")
+    print(f"📝 Logging to: {log_filename}")
     print("=" * 60)
 
     try:
-        crew = build_research_crew(topic=topic)
-        result = crew.kickoff()
+        # Open log file and redirect output to both console and file
+        with open(log_filename, "w", encoding="utf-8") as log_file:
+            # Write header to log file
+            log_file.write(f"CrewAI Research Agent Log\n")
+            log_file.write(f"Topic: {topic}\n")
+            log_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+            log_file.write("=" * 60 + "\n\n")
 
-        print("\n✅ Research completed!")
-        print("=" * 60)
-        print("\nFinal Report:")
-        print(result.raw)
+            # Redirect stdout to both console and file
+            original_stdout = sys.stdout
+            sys.stdout = TeeOutput(log_file)
+
+            try:
+                crew = build_research_crew(topic=topic)
+                result = crew.kickoff()
+
+                print("\n✅ Research completed!")
+                print("=" * 60)
+                print("\nFinal Report:")
+                print(result.raw)
+
+            finally:
+                # Restore original stdout
+                sys.stdout = original_stdout
+
+        print(f"\n✅ Log saved to: {log_filename}")
 
     except ValueError as e:
         print(f"\n❌ Configuration error: {e}")
