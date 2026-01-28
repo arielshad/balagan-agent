@@ -5,6 +5,7 @@ import time
 from typing import Any, Callable, Optional
 
 from .experiment import Experiment, ExperimentConfig, ExperimentResult
+from .verbose import get_logger
 from .injectors import (
     BaseInjector,
     BudgetExhaustionInjector,
@@ -49,10 +50,13 @@ class ChaosEngine:
         self,
         chaos_level: float = 1.0,
         seed: Optional[int] = None,
+        verbose: bool = False,
     ):
         self.chaos_level = chaos_level
         self.seed = seed
+        self.verbose = verbose
         self._rng = random.Random(seed)
+        self._logger = get_logger()
 
         # Initialize injectors
         self._injectors: dict[str, BaseInjector] = {}
@@ -163,12 +167,17 @@ class ChaosEngine:
         name = tool_name or tool_func.__name__
 
         def wrapped(*args, **kwargs):
+            start_time = time.time()
             context = {
                 "tool_name": name,
                 "args": args,
                 "kwargs": kwargs,
-                "timestamp": time.time(),
+                "timestamp": start_time,
             }
+
+            # Verbose logging: tool call
+            if self.verbose:
+                self._logger.tool_call(name, args, kwargs)
 
             # Check if we're in an experiment
             if self._active_experiment:
@@ -218,6 +227,11 @@ class ChaosEngine:
                 if inject_on_output:
                     result = self._inject_on_output(name, result, context)
 
+                # Verbose logging: success
+                if self.verbose:
+                    duration_ms = (time.time() - start_time) * 1000
+                    self._logger.tool_result(result, duration_ms)
+
                 if self._active_experiment:
                     op.record_success()
                     op.__exit__(None, None, None)
@@ -225,6 +239,11 @@ class ChaosEngine:
                 return result
 
             except Exception as e:
+                # Verbose logging: error
+                if self.verbose:
+                    duration_ms = (time.time() - start_time) * 1000
+                    self._logger.tool_error(e, duration_ms)
+
                 if self._active_experiment:
                     op.record_failure(str(e))
                     op.__exit__(type(e), e, e.__traceback__)
@@ -277,6 +296,10 @@ class ChaosEngine:
 
     def _notify_fault(self, fault_type: str, tool_name: str, details: dict):
         """Notify listeners of a fault injection."""
+        # Verbose logging: fault injection
+        if self.verbose:
+            self._logger.fault_injected(fault_type, tool_name, details)
+
         for callback in self._on_fault_injected:
             try:
                 callback(fault_type, tool_name, details)
@@ -311,6 +334,10 @@ class ChaosEngine:
         if self._active_experiment:
             raise RuntimeError("An experiment is already running")
 
+        # Verbose logging: experiment start
+        if self.verbose:
+            self._logger.experiment_start(config.name, config.chaos_level)
+
         experiment = Experiment(config)
         experiment.start()
         self._active_experiment = experiment
@@ -327,6 +354,12 @@ class ChaosEngine:
             raise RuntimeError("No experiment is running")
 
         result = self._active_experiment.complete()
+
+        # Verbose logging: experiment end
+        if self.verbose:
+            duration = result.end_time - result.start_time if result.end_time else 0
+            self._logger.experiment_end(result.config.name, duration, result.success_rate)
+
         self._completed_experiments.append(result)
         self._active_experiment = None
 

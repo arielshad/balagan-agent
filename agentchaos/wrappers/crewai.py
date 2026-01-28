@@ -33,6 +33,7 @@ from ..injectors import (
     ToolFailureInjector,
 )
 from ..metrics import MetricsCollector, MTTRCalculator
+from ..verbose import get_logger
 
 
 @dataclass
@@ -75,6 +76,7 @@ class CrewAIToolProxy:
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
+        verbose: bool = False,
     ):
         """
         Initialize the tool proxy.
@@ -84,6 +86,7 @@ class CrewAIToolProxy:
             chaos_level: Chaos level (0.0 = no chaos, 1.0 = full chaos)
             max_retries: Maximum retry attempts on failure
             retry_delay: Delay between retries in seconds
+            verbose: Enable verbose logging
         """
         self._tool = tool
         self._tool_name = getattr(tool, "name", str(tool))
@@ -91,6 +94,8 @@ class CrewAIToolProxy:
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
+        self.verbose = verbose
+        self._logger = get_logger()
 
         self._injectors: list[BaseInjector] = []
         self._call_history: list[CrewAIToolCall] = []
@@ -127,6 +132,10 @@ class CrewAIToolProxy:
             "args": args,
             "kwargs": kwargs,
         }
+
+        # Verbose logging: tool call
+        if self.verbose:
+            self._logger.tool_call(self._tool_name, args, kwargs)
 
         retries = 0
         last_error = None
@@ -170,6 +179,13 @@ class CrewAIToolProxy:
                         retries=retries,
                         success=True,
                     )
+                    # Verbose logging: recovery
+                    if self.verbose:
+                        self._logger.recovery(self._tool_name, retries, True)
+
+                # Verbose logging: result
+                if self.verbose:
+                    self._logger.tool_result(result, call.duration_ms)
 
                 self._call_history.append(call)
                 self._metrics.record_operation(
@@ -188,6 +204,9 @@ class CrewAIToolProxy:
                 call.retries = retries
 
                 if retries <= self._max_retries:
+                    # Verbose logging: retry
+                    if self.verbose:
+                        self._logger.retry(retries, self._max_retries, self._retry_delay)
                     time.sleep(self._retry_delay)
                 else:
                     break
@@ -213,6 +232,13 @@ class CrewAIToolProxy:
                 retries=retries,
                 success=False,
             )
+            # Verbose logging: failed recovery
+            if self.verbose:
+                self._logger.recovery(self._tool_name, retries, False)
+
+        # Verbose logging: error
+        if self.verbose:
+            self._logger.tool_error(last_error, call.duration_ms)
 
         raise last_error  # type: ignore
 
@@ -247,6 +273,7 @@ class CrewAIWrapper:
         chaos_level: float = 0.0,
         max_retries: int = 3,
         retry_delay: float = 0.1,
+        verbose: bool = False,
     ):
         """
         Initialize the CrewAI wrapper.
@@ -256,11 +283,14 @@ class CrewAIWrapper:
             chaos_level: Initial chaos level (0.0-1.0)
             max_retries: Default max retries for tool calls
             retry_delay: Default retry delay in seconds
+            verbose: Enable verbose logging
         """
         self._crew = crew
         self._chaos_level = chaos_level
         self._max_retries = max_retries
         self._retry_delay = retry_delay
+        self.verbose = verbose
+        self._logger = get_logger()
 
         self._tool_proxies: dict[str, CrewAIToolProxy] = {}
         self._injectors: list[BaseInjector] = []
@@ -300,6 +330,7 @@ class CrewAIWrapper:
                         chaos_level=self._chaos_level,
                         max_retries=self._max_retries,
                         retry_delay=self._retry_delay,
+                        verbose=self.verbose,
                     )
                     self._tool_proxies[tool_name] = proxy
 

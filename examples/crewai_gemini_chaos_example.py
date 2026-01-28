@@ -20,6 +20,7 @@ Usage:
   python examples/crewai_gemini_chaos_example.py
   python examples/crewai_gemini_chaos_example.py --scenario latency
   python examples/crewai_gemini_chaos_example.py --scenario all
+  python examples/crewai_gemini_chaos_example.py --scenario failures --verbose
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ from crewai_gemini_research_agent import (
 )
 
 try:
+    from agentchaos import set_verbose
     from agentchaos.wrappers.crewai import CrewAIWrapper
 except ImportError:
     print("❌ AgentChaos not installed. Install with: pip install -e .")
@@ -50,7 +52,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 
-def scenario_tool_failures(topic: str = "quantum computing"):
+def scenario_tool_failures(topic: str = "quantum computing", verbose: bool = False):
     """Scenario 1: Random tool failures.
 
     Tests how the agent handles when tools randomly fail 50% of the time.
@@ -61,6 +63,8 @@ def scenario_tool_failures(topic: str = "quantum computing"):
     print("=" * 70)
     print(f"Topic: {topic}")
     print("Testing: How agents handle when tools randomly fail")
+    if verbose:
+        print("Verbose mode: ON")
     print()
 
     try:
@@ -68,7 +72,7 @@ def scenario_tool_failures(topic: str = "quantum computing"):
         crew = build_research_crew(topic=topic, llm=llm)
 
         # Wrap with AgentChaos - configure 50% tool failure rate
-        wrapper = CrewAIWrapper(crew, chaos_level=0.5)
+        wrapper = CrewAIWrapper(crew, chaos_level=0.5, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=5.0,  # High chaos level for 50% failure rate
             enable_tool_failures=True,
@@ -115,7 +119,7 @@ def scenario_tool_failures(topic: str = "quantum computing"):
         print("This shows the agent couldn't handle this chaos level!")
 
 
-def scenario_latency_injection(topic: str = "blockchain"):
+def scenario_latency_injection(topic: str = "blockchain", verbose: bool = False):
     """Scenario 2: Latency injection.
 
     Tests how the agent performs when tools have artificial delays.
@@ -126,6 +130,8 @@ def scenario_latency_injection(topic: str = "blockchain"):
     print("=" * 70)
     print(f"Topic: {topic}")
     print("Testing: Agent performance with slow tool responses")
+    if verbose:
+        print("Verbose mode: ON")
     print()
 
     try:
@@ -133,7 +139,7 @@ def scenario_latency_injection(topic: str = "blockchain"):
         crew = build_research_crew(topic=topic, llm=llm)
 
         # Wrap with AgentChaos - add delays
-        wrapper = CrewAIWrapper(crew, chaos_level=0.3)
+        wrapper = CrewAIWrapper(crew, chaos_level=0.3, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=3.0,  # High chaos level for frequent delays
             enable_tool_failures=False,
@@ -178,7 +184,7 @@ def scenario_latency_injection(topic: str = "blockchain"):
         print(f"\n❌ Crew failed: {e}")
 
 
-def scenario_partial_failures(topic: str = "machine learning"):
+def scenario_partial_failures(topic: str = "machine learning", verbose: bool = False):
     """Scenario 3: Partial/intermittent failures.
 
     Some tools work reliably, others fail intermittently.
@@ -189,6 +195,8 @@ def scenario_partial_failures(topic: str = "machine learning"):
     print("=" * 70)
     print(f"Topic: {topic}")
     print("Testing: Agent adaptation when primary tool is unreliable")
+    if verbose:
+        print("Verbose mode: ON")
     print()
 
     try:
@@ -197,7 +205,7 @@ def scenario_partial_failures(topic: str = "machine learning"):
 
         # Wrap with high chaos for partial degradation
         # This simulates the primary research tool being unreliable
-        wrapper = CrewAIWrapper(crew, chaos_level=0.7)
+        wrapper = CrewAIWrapper(crew, chaos_level=0.7, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=7.0,  # Very high chaos level
             enable_tool_failures=True,
@@ -236,7 +244,7 @@ def scenario_partial_failures(topic: str = "machine learning"):
         print(f"\n❌ Crew failed: {e}")
 
 
-def scenario_data_corruption(topic: str = "cybersecurity"):
+def scenario_data_corruption(topic: str = "cybersecurity", verbose: bool = False):
     """Scenario 4: Data corruption.
 
     Tools return incomplete or malformed data instead of failing cleanly.
@@ -247,6 +255,8 @@ def scenario_data_corruption(topic: str = "cybersecurity"):
     print("=" * 70)
     print(f"Topic: {topic}")
     print("Testing: Agent resilience to malformed tool outputs")
+    if verbose:
+        print("Verbose mode: ON")
     print()
 
     try:
@@ -254,7 +264,7 @@ def scenario_data_corruption(topic: str = "cybersecurity"):
         crew = build_research_crew(topic=topic, llm=llm)
 
         # Wrap with AgentChaos - enable hallucinations (data corruption)
-        wrapper = CrewAIWrapper(crew, chaos_level=0.3)
+        wrapper = CrewAIWrapper(crew, chaos_level=0.3, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=3.0,
             enable_tool_failures=False,
@@ -293,7 +303,7 @@ def scenario_data_corruption(topic: str = "cybersecurity"):
         print(f"\n❌ Crew failed: {e}")
 
 
-def scenario_stress_test(topic: str = "artificial intelligence"):
+def scenario_stress_test(topic: str = "artificial intelligence", verbose: bool = False):
     """Scenario 5: Stress test with multiple chaos factors.
 
     Combines failures, latency, and high load to see breaking points.
@@ -303,6 +313,8 @@ def scenario_stress_test(topic: str = "artificial intelligence"):
     print("=" * 70)
     print(f"Topic: {topic}")
     print("Testing: Agent under maximum stress")
+    if verbose:
+        print("Verbose mode: ON")
     print()
 
     try:
@@ -310,7 +322,7 @@ def scenario_stress_test(topic: str = "artificial intelligence"):
         crew = build_research_crew(topic=topic, llm=llm)
 
         # Maximum chaos: enable all injectors
-        wrapper = CrewAIWrapper(crew, chaos_level=0.4)
+        wrapper = CrewAIWrapper(crew, chaos_level=0.4, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=4.0,  # High chaos across all dimensions
             enable_tool_failures=True,
@@ -393,8 +405,18 @@ def main():
         default=None,
         help="Research topic (default: varies by scenario)",
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output showing tool calls, faults, and retries",
+    )
 
     args = parser.parse_args()
+
+    # Enable verbose mode globally if requested
+    if args.verbose:
+        set_verbose(True)
 
     print("\n" + "=" * 70)
     print("🌪️  AgentChaos — CrewAI Research Agent Chaos Testing")
@@ -416,12 +438,12 @@ def main():
             print("\n🎯 Running ALL chaos scenarios...\n")
             for name, (func, default_topic) in scenarios.items():
                 topic = args.topic or default_topic
-                func(topic)
+                func(topic, verbose=args.verbose)
                 time.sleep(1)  # Brief pause between scenarios
         else:
             func, default_topic = scenarios[args.scenario]
             topic = args.topic or default_topic
-            func(topic)
+            func(topic, verbose=args.verbose)
 
         print("\n" + "=" * 70)
         print("✅ Chaos testing completed!")

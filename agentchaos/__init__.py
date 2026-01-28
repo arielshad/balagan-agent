@@ -17,6 +17,7 @@ from .engine import ChaosEngine
 from .experiment import Experiment, ExperimentConfig
 from .reporting import ReportGenerator
 from .runner import ExperimentRunner
+from .verbose import get_logger, is_verbose, set_verbose
 from .wrapper import AgentWrapper, ToolProxy
 
 __all__ = [
@@ -27,4 +28,7 @@ __all__ = [
     "ToolProxy",
     "ExperimentRunner",
     "ReportGenerator",
+    "set_verbose",
+    "is_verbose",
+    "get_logger",
 ]

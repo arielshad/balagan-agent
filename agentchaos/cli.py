@@ -9,6 +9,7 @@ from pathlib import Path
 from . import __version__
 from .reporting import ReportGenerator
 from .runner import ExperimentRunner, Scenario, scenario
+from .verbose import set_verbose
 
 
 def main():
@@ -63,6 +64,12 @@ def main():
         default="terminal",
         help="Output format",
     )
+    run_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output",
+    )
 
     # Stress command
     stress_parser = subparsers.add_parser("stress", help="Run stress tests")
@@ -95,6 +102,12 @@ def main():
         "-o",
         help="Output file for results",
     )
+    stress_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output",
+    )
 
     # Demo command
     demo_parser = subparsers.add_parser("demo", help="Run a demo experiment")
@@ -104,6 +117,12 @@ def main():
         type=float,
         default=0.5,
         help="Chaos level for demo",
+    )
+    demo_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output",
     )
 
     # Init command
@@ -132,6 +151,10 @@ def main():
 
 def run_experiment(args):
     """Run chaos experiment."""
+    # Enable verbose mode if requested
+    if args.verbose:
+        set_verbose(True)
+
     print(f"Running chaos experiment with level {args.chaos_level}")
 
     # Load scenario
@@ -152,7 +175,7 @@ def run_experiment(args):
         agent = MockAgent()
 
     # Run experiment
-    runner = ExperimentRunner()
+    runner = ExperimentRunner(verbose=args.verbose)
     runner.set_agent(agent)
 
     results = []
@@ -194,6 +217,10 @@ def run_experiment(args):
 
 def run_stress_test(args):
     """Run stress test."""
+    # Enable verbose mode if requested
+    if args.verbose:
+        set_verbose(True)
+
     print(f"Running stress test with levels: {args.levels}")
 
     scenario_path = Path(args.scenario)
@@ -209,7 +236,7 @@ def run_stress_test(args):
     if agent is None:
         agent = MockAgent()
 
-    runner = ExperimentRunner()
+    runner = ExperimentRunner(verbose=args.verbose)
     runner.set_agent(agent)
 
     results = runner.run_stress_test(
@@ -229,10 +256,17 @@ def run_stress_test(args):
 
 def run_demo(args):
     """Run demo experiment."""
+    # Enable verbose mode if requested
+    if args.verbose:
+        set_verbose(True)
+
     print(f"\n{'='*60}")
     print("  AGENTCHAOS DEMO")
     print(f"{'='*60}\n")
-    print(f"Running demo with chaos level: {args.chaos_level}\n")
+    print(f"Running demo with chaos level: {args.chaos_level}")
+    if args.verbose:
+        print("Verbose mode: ON")
+    print()
 
     # Create mock agent
     agent = MockAgent()
@@ -249,7 +283,7 @@ def run_demo(args):
     )
 
     # Run experiment
-    runner = ExperimentRunner()
+    runner = ExperimentRunner(verbose=args.verbose)
     runner.set_agent(agent)
 
     print("Running experiment...")

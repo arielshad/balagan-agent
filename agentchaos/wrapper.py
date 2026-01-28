@@ -14,6 +14,7 @@ from .injectors import (
     ToolFailureInjector,
 )
 from .metrics import MetricsCollector, MTTRCalculator
+from .verbose import get_logger
 
 
 class ToolProtocol(Protocol):
@@ -72,11 +73,14 @@ class ToolProxy:
         name: Optional[str] = None,
         max_retries: int = 3,
         retry_delay_seconds: float = 1.0,
+        verbose: bool = False,
     ):
         self.tool = tool
         self.name = name or tool.__name__
         self.max_retries = max_retries
         self.retry_delay_seconds = retry_delay_seconds
+        self.verbose = verbose
+        self._logger = get_logger()
 
         self._injectors: list[BaseInjector] = []
         self._call_history: list[ToolCall] = []
@@ -131,6 +135,10 @@ class ToolProxy:
             "args": args,
             "kwargs": kwargs,
         }
+
+        # Verbose logging: tool call
+        if self.verbose:
+            self._logger.tool_call(self.name, args, kwargs)
 
         # Notify before-call callbacks
         for callback in self._before_call:
@@ -189,6 +197,13 @@ class ToolProxy:
                         retries=retries,
                         success=True,
                     )
+                    # Verbose logging: recovery
+                    if self.verbose:
+                        self._logger.recovery(self.name, retries, True)
+
+                # Verbose logging: result
+                if self.verbose:
+                    self._logger.tool_result(result, call.duration_ms)
 
                 self._call_history.append(call)
 
@@ -222,6 +237,10 @@ class ToolProxy:
                         pass
 
                 if retries <= self.max_retries:
+                    # Verbose logging: retry
+                    if self.verbose:
+                        self._logger.retry(retries, self.max_retries, self.retry_delay_seconds)
+
                     # Notify retry callbacks
                     for callback in self._on_retry:
                         try:
@@ -254,6 +273,13 @@ class ToolProxy:
                 retries=retries,
                 success=False,
             )
+            # Verbose logging: failed recovery
+            if self.verbose:
+                self._logger.recovery(self.name, retries, False)
+
+        # Verbose logging: error
+        if self.verbose:
+            self._logger.tool_error(last_error, call.duration_ms)
 
         raise last_error  # type: ignore
 
@@ -304,11 +330,13 @@ class AgentWrapper:
         tool_names: Optional[list[str]] = None,
         max_retries: int = 3,
         retry_delay_seconds: float = 1.0,
+        verbose: bool = False,
     ):
         self._original_agent = agent
         self._tool_names = tool_names
         self._max_retries = max_retries
         self._retry_delay_seconds = retry_delay_seconds
+        self.verbose = verbose
 
         self._tool_proxies: dict[str, ToolProxy] = {}
         self._injectors: list[BaseInjector] = []
@@ -348,6 +376,7 @@ class AgentWrapper:
                     name=name,
                     max_retries=self._max_retries,
                     retry_delay_seconds=self._retry_delay_seconds,
+                    verbose=self.verbose,
                 )
                 self._tool_proxies[name] = proxy
 
@@ -486,6 +515,7 @@ def chaos_tool(
     retry_delay: float = 1.0,
     enable_delays: bool = True,
     enable_failures: bool = True,
+    verbose: bool = False,
 ) -> Callable[[T], T]:
     """
     Decorator to add chaos injection to a tool function.
@@ -503,6 +533,7 @@ def chaos_tool(
             func,
             max_retries=max_retries,
             retry_delay_seconds=retry_delay,
+            verbose=verbose,
         )
 
         if enable_failures:

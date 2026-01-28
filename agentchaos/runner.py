@@ -13,6 +13,7 @@ from .metrics import (
     RecoveryQualityAnalyzer,
     ReliabilityScorer,
 )
+from .verbose import get_logger
 from .wrapper import AgentWrapper
 
 
@@ -79,9 +80,17 @@ class ExperimentRunner:
         self,
         agent_wrapper: Optional[AgentWrapper] = None,
         chaos_engine: Optional[ChaosEngine] = None,
+        verbose: bool = False,
     ):
         self.agent_wrapper = agent_wrapper
-        self.chaos_engine = chaos_engine or ChaosEngine()
+        self.verbose = verbose
+        self._logger = get_logger()
+
+        # Create or use provided chaos engine with verbose setting
+        if chaos_engine is None:
+            self.chaos_engine = ChaosEngine(verbose=verbose)
+        else:
+            self.chaos_engine = chaos_engine
 
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
@@ -93,7 +102,7 @@ class ExperimentRunner:
 
     def set_agent(self, agent: Any, tool_names: Optional[list[str]] = None):
         """Set the agent to test."""
-        self.agent_wrapper = AgentWrapper(agent, tool_names)
+        self.agent_wrapper = AgentWrapper(agent, tool_names, verbose=self.verbose)
 
     def run_scenario(
         self,
@@ -110,6 +119,13 @@ class ExperimentRunner:
         chaos_config = scenario.chaos_config.copy()
         if chaos_level is not None:
             chaos_config["chaos_level"] = chaos_level
+
+        # Verbose logging: scenario start
+        if self.verbose:
+            self._logger.section(f"Scenario: {scenario.name}")
+            if scenario.description:
+                self._logger.log(scenario.description, "dim")
+            self._logger.log(f"Operations: {len(scenario.operations)}", "cyan")
 
         self.agent_wrapper.configure_chaos(**chaos_config)
 
@@ -168,6 +184,19 @@ class ExperimentRunner:
             failure_reason=failure_reason,
         )
 
+        # Verbose logging: scenario completion
+        if self.verbose:
+            status = "✓ PASSED" if passed else "✗ FAILED"
+            color = "green" if passed else "red"
+            self._logger.log(f"{status} - {scenario.name} ({result.duration_seconds:.2f}s)", color)
+            if failure_reason:
+                self._logger.log(f"  Reason: {failure_reason}", "red", level=1)
+
+            # Log metrics
+            self._logger.metric("Success Rate", f"{experiment_result.success_rate:.1%}")
+            self._logger.metric("Recovery Rate", f"{experiment_result.recovery_rate:.1%}")
+            self._logger.metric("Faults Injected", experiment_result.faults_injected)
+
         self._results.append(result)
         return result
 
@@ -211,9 +240,17 @@ class ExperimentRunner:
         }
 
         for level in chaos_levels:
+            # Verbose logging: stress test level start
+            if self.verbose:
+                self._logger.section(f"Stress Test Level: {level}")
+                self._logger.log(f"Running {iterations} iterations...", "cyan")
+
             level_results = []
 
-            for _ in range(iterations):
+            for i in range(iterations):
+                if self.verbose and i > 0 and i % 10 == 0:
+                    self._logger.log(f"  Progress: {i}/{iterations} iterations completed", "dim")
+
                 result = self.run_scenario(scenario, chaos_level=level)
                 level_results.append({
                     "passed": result.passed,
@@ -233,6 +270,12 @@ class ExperimentRunner:
                 "avg_success_rate": avg_success_rate,
                 "iterations": len(level_results),
             }
+
+            # Verbose logging: level summary
+            if self.verbose:
+                pass_rate = passed_count / iterations
+                color = "green" if pass_rate > 0.9 else "yellow" if pass_rate > 0.7 else "red"
+                self._logger.log(f"Level {level} complete: {pass_rate:.1%} pass rate", color)
 
         return stress_results
 
