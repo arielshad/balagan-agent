@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from .base import BaseInjector, FaultType, InjectorConfig
 
@@ -198,7 +198,7 @@ class HallucinationInjector(BaseInjector):
                     ]
                 ),
             }
-            return data
+            return cast(dict[Any, Any], data)
         return {
             "original": data,
             "_fabricated_metadata": {
@@ -220,7 +220,7 @@ class HallucinationInjector(BaseInjector):
         if isinstance(data, dict):
             data = data.copy()
             data["_contradiction"] = contradiction
-            return data
+            return cast(dict[Any, Any], data)
         return {"value": data, "_contradiction": contradiction}
 
     def _inject_confident_wrong(self, data: Any) -> dict:
@@ -245,7 +245,7 @@ class HallucinationInjector(BaseInjector):
         if isinstance(data, dict):
             data = data.copy()
             data["_reference"] = self._rng.choice(fake_refs)
-            return data
+            return cast(dict[Any, Any], data)
         return {"value": data, "reference": self._rng.choice(fake_refs)}
 
     def inject(self, target: str, context: dict[str, Any]) -> tuple[Any, dict[str, Any]]:

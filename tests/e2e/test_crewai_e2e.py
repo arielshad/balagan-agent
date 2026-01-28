@@ -27,7 +27,7 @@ class MockCrewAITool:
 class MockCrewAIAgent:
     """Mock CrewAI Agent for testing."""
 
-    def __init__(self, role: str, goal: str, tools: list = None):
+    def __init__(self, role: str, goal: str, tools: list | None = None):
         self.role = role
         self.goal = goal
         self.tools = tools or []
@@ -52,7 +52,7 @@ class MockCrew:
         self.tasks = tasks
         self._kickoff_count = 0
 
-    def kickoff(self, inputs: dict = None):
+    def kickoff(self, inputs: dict | None = None):
         """Simulate crew execution."""
         self._kickoff_count += 1
         results = []

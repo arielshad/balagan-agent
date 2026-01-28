@@ -11,7 +11,7 @@ from pytest_bdd import given, parsers, scenario, then, when
 def mock_autogen_agent():
     """Create a mock AutoGen agent."""
 
-    def _create(name: str, function_map: dict = None):
+    def _create(name: str, function_map: dict | None = None):
         agent = MagicMock()
         agent.name = name
         agent.function_map = function_map or {}

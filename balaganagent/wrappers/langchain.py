@@ -587,7 +587,8 @@ class LangChainAgentWrapper:
         if config is not None:
             kwargs["config"] = config
 
-        return self._agent_executor.batch(inputs, **kwargs)
+        from typing import cast
+        return cast(list[Any], self._agent_executor.batch(inputs, **kwargs))
 
     async def abatch(
         self, inputs: list[dict], config: Optional[dict] = None, **kwargs
@@ -608,7 +609,8 @@ class LangChainAgentWrapper:
         if config is not None:
             kwargs["config"] = config
 
-        return await self._agent_executor.abatch(inputs, **kwargs)
+        from typing import cast
+        return cast(list[Any], await self._agent_executor.abatch(inputs, **kwargs))
 
     def get_metrics(self) -> dict[str, Any]:
         """Get comprehensive metrics."""
@@ -725,7 +727,8 @@ class LangChainChainWrapper:
     def batch(self, inputs: list[dict], **kwargs) -> list[Any]:
         """Batch invoke the chain."""
         self._invoke_count += len(inputs)
-        return self._chain.batch(inputs, **kwargs)
+        from typing import cast
+        return cast(list[Any], self._chain.batch(inputs, **kwargs))
 
     def get_metrics(self) -> dict[str, Any]:
         """Get metrics."""

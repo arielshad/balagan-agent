@@ -144,7 +144,7 @@ class CompositeInjector(BaseInjector):
     def inject(self, target: str, context: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
         """Inject faults from all child injectors that trigger."""
         results = []
-        combined_details = {"injectors": []}
+        combined_details: dict[str, Any] = {"injectors": []}
 
         for injector in self.injectors:
             if injector.should_inject(target):

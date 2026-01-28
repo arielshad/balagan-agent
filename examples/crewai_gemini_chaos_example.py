@@ -348,7 +348,7 @@ def scenario_stress_test(topic: str = "artificial intelligence", verbose: bool =
         total_calls = 0
         total_failures = 0
         total_latency = 0.0
-        fault_counts = {}
+        fault_counts: dict[str, int] = {}
 
         for tool_name, tool_metrics in metrics["tools"].items():
             ops = tool_metrics.get("operations", {})

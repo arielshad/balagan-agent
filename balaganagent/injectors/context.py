@@ -143,7 +143,7 @@ class ContextCorruptionInjector(BaseInjector):
     def _duplicate(self, data: Any) -> Any:
         """Duplicate random elements."""
         if isinstance(data, list):
-            result = []
+            result: list[Any] = []
             for item in data:
                 result.append(item)
                 if self._rng.random() < 0.3:  # 30% chance to duplicate
@@ -151,21 +151,21 @@ class ContextCorruptionInjector(BaseInjector):
             return result
 
         elif isinstance(data, dict):
-            result = data.copy()
-            for key in list(result.keys()):
+            result_dict: dict[Any, Any] = data.copy()
+            for key in list(result_dict.keys()):
                 if self._rng.random() < 0.3:
                     new_key = f"{key}_dup"
-                    result[new_key] = copy.deepcopy(result[key])
-            return result
+                    result_dict[new_key] = copy.deepcopy(result_dict[key])
+            return result_dict
 
         elif isinstance(data, str):
             words = data.split()
-            result = []
+            word_list: list[str] = []
             for word in words:
-                result.append(word)
+                word_list.append(word)
                 if self._rng.random() < 0.2:
-                    result.append(word)  # Duplicate word
-            return " ".join(result)
+                    word_list.append(word)  # Duplicate word
+            return " ".join(word_list)
 
         return data
 

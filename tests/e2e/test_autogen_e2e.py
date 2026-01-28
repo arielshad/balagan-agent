@@ -10,10 +10,10 @@ import pytest
 class MockAutoGenAgent:
     """Mock AutoGen Agent for testing."""
 
-    def __init__(self, name: str, function_map: dict = None):
+    def __init__(self, name: str, function_map: dict | None = None):
         self.name = name
         self.function_map = function_map or {}
-        self._messages = []
+        self._messages: list = []
         self._reply_count = 0
 
     def generate_reply(self, messages=None, sender=None, **kwargs):
@@ -40,7 +40,7 @@ class MockUserProxy:
 
     def __init__(self, name: str):
         self.name = name
-        self._chat_history = []
+        self._chat_history: list = []
 
     def initiate_chat(self, recipient, message, max_turns=None, clear_history=False, **kwargs):
         """Simulate initiating a chat."""
@@ -75,7 +75,7 @@ class MockGroupChat:
     def __init__(self, agents: list, max_round: int = 10):
         self.agents = agents
         self.max_round = max_round
-        self._messages = []
+        self._messages: list = []
 
 
 class TestAutoGenE2EWorkflow:

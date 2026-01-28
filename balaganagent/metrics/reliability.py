@@ -370,12 +370,13 @@ class ReliabilityScorer:
 
         recommendations = self._generate_recommendations(component_scores, raw_metrics)
 
+        from typing import cast
         return ReliabilityReport(
             overall_score=overall_score,
             grade=self._determine_grade(availability),
             availability=availability,
-            mttr_seconds=raw_metrics["mttr_seconds"],
-            mtbf_seconds=raw_metrics["mtbf_seconds"],
+            mttr_seconds=cast(float, raw_metrics["mttr_seconds"]),
+            mtbf_seconds=cast(float, raw_metrics["mtbf_seconds"]),
             error_budget_remaining=error_budget["remaining_percent"],
             component_scores=component_scores,
             recommendations=recommendations,

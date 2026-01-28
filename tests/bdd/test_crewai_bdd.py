@@ -24,7 +24,7 @@ def mock_crewai_tool():
 def mock_crewai_agent():
     """Create a mock CrewAI agent."""
 
-    def _create(role: str, tools: list = None):
+    def _create(role: str, tools: list | None = None):
         agent = MagicMock()
         agent.role = role
         agent.tools = tools or []
@@ -37,7 +37,7 @@ def mock_crewai_agent():
 def mock_crew():
     """Create a mock CrewAI crew."""
 
-    def _create(agents: list, tasks: list = None):
+    def _create(agents: list, tasks: list | None = None):
         crew = MagicMock()
         crew.agents = agents
         crew.tasks = tasks or []

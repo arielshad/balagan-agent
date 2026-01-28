@@ -261,8 +261,8 @@ class ChaosEngine:
 
         wrapped.__name__ = name
         wrapped.__doc__ = tool_func.__doc__
-        wrapped._original = tool_func
-        wrapped._chaos_wrapped = True
+        wrapped._original = tool_func  # type: ignore[attr-defined]
+        wrapped._chaos_wrapped = True  # type: ignore[attr-defined]
 
         return wrapped
 

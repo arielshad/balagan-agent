@@ -237,7 +237,7 @@ class ExperimentRunner:
         if chaos_levels is None:
             chaos_levels = [0.1, 0.25, 0.5, 0.75, 1.0]
 
-        stress_results = {
+        stress_results: dict[str, Any] = {
             "scenario": scenario.name,
             "iterations_per_level": iterations,
             "levels": {},

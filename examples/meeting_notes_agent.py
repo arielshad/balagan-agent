@@ -72,6 +72,7 @@ class TaskExtractorAgent:
         return items
 
     def _extract_owner(self, text: str) -> str:
+        from typing import cast
         # Find a capitalized name that appears before an action verb
         verb_match = _ACTION_VERBS.search(text)
         if verb_match:
@@ -81,14 +82,14 @@ class TaskExtractorAgent:
             skip = {"We", "The", "This", "That", "Also", "And", "But", "Maybe", "If", "Or"}
             names = [n for n in names if n not in skip]
             if names:
-                return names[-1]
+                return cast(str, names[-1])
 
         # Fallback: first capitalized word that looks like a name
         all_names = _NAME_PATTERN.findall(text)
         skip = {"We", "The", "This", "That", "Also", "And", "But", "Maybe", "If", "Or", "Fix"}
         for name in all_names:
             if name not in skip:
-                return name
+                return cast(str, name)
         return "Unassigned"
 
     def _extract_due_date(self, text: str) -> str:
@@ -128,8 +129,9 @@ class MeetingNotesCrew:
         self.extractor = TaskExtractorAgent()
 
     def process(self, raw_notes: str) -> list[ActionItem]:
+        from typing import cast
         bullets = self.summarizer.summarize(raw_notes)
-        return self.extractor.extract(bullets)
+        return cast(list[ActionItem], self.extractor.extract(bullets))
 
     def format_output(self, items: list[ActionItem]) -> str:
         lines = []

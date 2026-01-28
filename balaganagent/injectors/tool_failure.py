@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from .base import BaseInjector, FaultType, InjectorConfig
 
@@ -170,10 +170,10 @@ class ToolFailureInjector(BaseInjector):
 
 
 def create_flaky_tool(
-    tool_func: callable,
+    tool_func: Callable[..., Any],
     failure_rate: float = 0.1,
     failure_modes: Optional[list[FailureMode]] = None,
-) -> callable:
+) -> Callable[..., Any]:
     """
     Decorator to make a tool function flaky for testing.
 
@@ -198,8 +198,8 @@ def create_flaky_tool(
             return result
         return tool_func(*args, **kwargs)
 
-    wrapper.__name__ = tool_func.__name__
-    wrapper.__doc__ = tool_func.__doc__
-    wrapper._injector = injector
+    wrapper.__name__ = tool_func.__name__  # type: ignore[attr-defined]
+    wrapper.__doc__ = tool_func.__doc__  # type: ignore[attr-defined]
+    wrapper._injector = injector  # type: ignore[attr-defined]
 
     return wrapper

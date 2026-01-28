@@ -251,7 +251,7 @@ class RecoveryQualityAnalyzer:
         # Check for critical state keys that should remain unchanged
         critical_keys = ["config", "credentials", "session", "context"]
 
-        inconsistencies = 0
+        inconsistencies: float = 0
         total_checks = 0
 
         for key in critical_keys:
@@ -356,7 +356,8 @@ class RecoveryQualityAnalyzer:
         ]
 
         # Sort by average score (ascending) and return top_n
-        return sorted(averages, key=lambda x: x["average_score"])[:top_n]
+        from typing import cast
+        return sorted(averages, key=lambda x: cast(float, x["average_score"]))[:top_n]
 
     def reset(self):
         """Reset all assessments."""

@@ -192,8 +192,8 @@ class BudgetExhaustionInjector(BaseInjector):
 
     def inject(self, target: str, context: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
         """Check and potentially exhaust budgets."""
-        violations = []
-        warnings = []
+        violations: list[tuple[BudgetType, str]] = []
+        warnings: list[str] = []
 
         data = context.get("data", context.get("input", ""))
         estimated_tokens = self._estimate_tokens(data)
