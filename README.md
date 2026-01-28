@@ -471,8 +471,8 @@ Check out real-world examples:
 
 - **GitHub Discussions**: [Ask questions and share ideas](https://github.com/arielshad/balagan-agent/discussions)
 - **Issue Tracker**: [Report bugs and request features](https://github.com/arielshad/balagan-agent/issues)
-- **Twitter/X**: Follow for updates [@arielshad](https://twitter.com/arielshad)
-- **Sponsor**: [Support the project](https://github.com/sponsors/arielshad)
+- **Linkedin**: Follow for updates [ariel-shadkhan](https://www.linkedin.com/in/ariel-shadkhan/)
+
 
 ## Contributing
 
