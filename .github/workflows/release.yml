@@ -41,12 +41,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: semantic-release version && semantic-release publish
 
-      - name: Trigger PyPI Publish Workflow
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish.yml --ref main
-
       - name: Check version bump
         if: always()
         run: |
