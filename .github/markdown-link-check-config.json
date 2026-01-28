@@ -5,6 +5,15 @@
     },
     {
       "pattern": "^https://twitter.com"
+    },
+    {
+      "pattern": ".*discussions$"
+    },
+    {
+      "pattern": ".*compare/v.*"
+    },
+    {
+      "pattern": "CODE_OF_CONDUCT.md"
     }
   ],
   "replacementPatterns": [],
