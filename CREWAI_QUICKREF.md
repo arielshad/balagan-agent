@@ -201,5 +201,5 @@ for tool_name, tool_metrics in metrics['tools'].items():
 ---
 
 📖 **Full Guide:** [CREWAI_INTEGRATION_GUIDE.md](CREWAI_INTEGRATION_GUIDE.md)
-🐛 **Issues:** [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
+🐛 **Issues:** [GitHub Issues](https://github.com/arielshad/balagan-agent/issues)
 ⭐ **Star the repo!**

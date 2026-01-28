@@ -824,8 +824,8 @@ python chaos_test.py --chaos-level 2.0 --verbose
 ## Need Help?
 
 - 📖 Read the [main README](README.md) for more details
-- 💬 Ask questions in [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
-- 🐛 Report bugs in [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
+- 💬 Ask questions in [GitHub Issues](https://github.com/arielshad/balagan-agent/issues)
+- 🐛 Report bugs in [GitHub Issues](https://github.com/arielshad/balagan-agent/issues)
 - ⭐ Star the repo if this helped you!
 
 ---
