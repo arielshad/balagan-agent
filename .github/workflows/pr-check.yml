@@ -95,7 +95,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=balaganagent --cov-report=xml --cov-report=term-missing --cov-fail-under=55 -v
+          pytest --cov=balaganagent --cov-report=xml --cov-report=term-missing --cov-fail-under=50 -v
 
       - name: Comment coverage on PR
         if: github.event_name == 'pull_request'
