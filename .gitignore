@@ -54,3 +54,7 @@ dmypy.json
 .env
 .env.local
 .env.*.local
+
+# Output files
+*.log
+crew_output_*.log
