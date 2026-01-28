@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "balaganagent"
+name = "balagan-agent"
 version = "0.1.0"
 description = "Chaos engineering framework for AI agents - stress-test agent reliability"
 readme = "README.md"
