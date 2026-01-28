@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-semantic-release[github]
+          pip install python-semantic-release
 
       - name: Configure Git
         run: |
@@ -39,7 +39,7 @@ jobs:
       - name: Run Semantic Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release
+        run: semantic-release version && semantic-release publish
 
       - name: Check version bump
         if: always()

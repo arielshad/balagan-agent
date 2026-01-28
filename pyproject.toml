@@ -132,8 +132,8 @@ version_variables = [
 ]
 build_command = "pip install build && python -m build"
 hvcs = "github"
-publish_to = ["github", "pypi"]
 branch = "main"
 changelog_file = "CHANGELOG.md"
 commit_message = "chore(release): {version}\n\nAutomatically generated release by python-semantic-release"
 tag_message = "chore(release): {version} [skip ci]"
+allow_zero_version = true
