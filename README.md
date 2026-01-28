@@ -51,6 +51,29 @@ AI agents are entering production environments, but there's zero reliability dis
 pip install agentchaos
 ```
 
+### CrewAI Integration
+
+**Using CrewAI?** Check out our [CrewAI Integration Guide](CREWAI_INTEGRATION_GUIDE.md) for a complete step-by-step walkthrough!
+
+Quick example:
+```python
+from agentchaos.wrappers.crewai import CrewAIWrapper
+
+# Your existing CrewAI setup
+crew = Crew(agents=[agent], tasks=[task])
+
+# Add chaos testing (3 lines!)
+wrapper = CrewAIWrapper(crew, chaos_level=0.5)
+wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
+result = wrapper.kickoff()
+
+# Check metrics
+metrics = wrapper.get_metrics()
+print(f"Success rate: {metrics['aggregate']['operations']['success_rate']:.1%}")
+```
+
+[→ Full CrewAI Integration Guide](CREWAI_INTEGRATION_GUIDE.md)
+
 ### Basic Usage
 
 ```python
