@@ -92,12 +92,12 @@ class TestMTTRCalculator:
 
         # Fast recovery for tool_failure
         calc.record_failure("op1", "tool_failure")
-        time.sleep(0.05)
+        time.sleep(0.2)
         calc.record_recovery("op1", "tool_failure")
 
         # Slower recovery for timeout
         calc.record_failure("op2", "timeout")
-        time.sleep(0.1)
+        time.sleep(0.5)
         calc.record_recovery("op2", "timeout")
 
         by_type = calc.calculate_mttr_by_fault_type()
