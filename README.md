@@ -1,26 +1,70 @@
 # BalaganAgent
 
+<div align="center">
+
+[![PyPI version](https://img.shields.io/pypi/v/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
+[![Python versions](https://img.shields.io/pypi/pyversions/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Tests](https://github.com/arielshad/balagan-agent/workflows/Tests/badge.svg)](https://github.com/arielshad/balagan-agent/actions)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Downloads](https://img.shields.io/pypi/dm/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
+[![GitHub stars](https://img.shields.io/github/stars/arielshad/balagan-agent.svg?style=social)](https://github.com/arielshad/balagan-agent)
+
 **Chaos Engineering for AI Agents**
 
 Everyone demos agents. Nobody stress-tests them.
 
+[Quick Start](#quick-start) •
+[Features](#features) •
+[Documentation](#documentation) •
+[Examples](#examples) •
+[Contributing](#contributing)
+
+</div>
+
 BalaganAgent is a reliability testing framework that stress-tests AI agents through controlled fault injection—because your agent will fail in production, and you should know how it handles it.
+
+---
+
+## Table of Contents
+
+- [Why BalaganAgent?](#why-balaganagent)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Use Cases](#use-cases)
+- [Chaos Levels](#chaos-levels)
+- [Fault Injectors](#fault-injectors)
+- [Metrics](#metrics)
+- [Reports](#reports)
+- [Project Structure](#project-structure)
+- [Community](#community)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ## Why BalaganAgent?
 
 AI agents are entering production environments, but there's zero reliability discipline. BalaganAgent brings the battle-tested principles of chaos engineering (think Chaos Monkey, Gremlin) to the world of AI agents.
 
-**The Problem:**
+### The Problem
 - Agents fail silently in production
 - Tool calls time out, return garbage, or hallucinate
 - Context gets corrupted, budgets get exhausted
 - Nobody knows until users complain
 
-**The Solution:**
+### The Solution
 - Inject failures in development, not production
 - Measure recovery time (MTTR)
 - Score reliability like we score SLAs
 - Find breaking points before users do
+
+### Industry Adoption
+
+BalaganAgent is designed for teams that take AI reliability seriously:
+- Production AI systems requiring SLO compliance
+- Enterprise deployments with strict reliability requirements
+- Development teams practicing chaos engineering
+- Organizations building mission-critical AI agents
 
 ## Features
 
@@ -45,10 +89,18 @@ AI agents are entering production environments, but there's zero reliability dis
 
 ## Quick Start
 
+Get up and running in minutes.
+
 ### Installation
 
 ```bash
-pip install balaganagent
+pip install balagan-agent
+```
+
+Verify installation:
+
+```bash
+balaganagent --version
 ```
 
 ### CrewAI Integration
@@ -137,6 +189,17 @@ balaganagent run scenarios/search_test.json --chaos-level 0.75
 # Run stress tests
 balaganagent stress scenarios/critical_path.json --iterations 100
 ```
+
+## Use Cases
+
+BalaganAgent helps you answer critical questions about your agents:
+
+- **Pre-Production Validation**: Will my agent handle API timeouts gracefully?
+- **Integration Testing**: Does my agent recover when tools return malformed data?
+- **Load Testing**: How does performance degrade under high failure rates?
+- **Reliability Engineering**: What's my agent's actual MTTR and recovery rate?
+- **SLO Compliance**: Can I maintain 99.9% availability under chaos?
+- **Regression Testing**: Did my recent changes break failure handling?
 
 ## Chaos Levels
 
@@ -387,14 +450,122 @@ balaganagent/
     └── reliability.py   # Reliability scoring
 ```
 
-## License
+## Documentation
 
-MIT
+- **[Development Guide](DEVELOPMENT.md)** - Set up your development environment
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to BalaganAgent
+- **[Security Policy](SECURITY.md)** - Vulnerability reporting process
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
+- **[CrewAI Integration](CREWAI_INTEGRATION_GUIDE.md)** - Step-by-step CrewAI setup
+
+## Examples
+
+Check out real-world examples:
+
+- [Meeting Notes Agent](tests/test_meeting_notes_agent.py) - Real agent under chaos
+- [CrewAI Integration](tests/test_crewai_wrapper.py) - CrewAI with chaos testing
+- [Stress Testing](tests/test_crewai_sdk_stress.py) - Finding breaking points
+- [BDD Scenarios](tests/bdd/) - Behavior-driven chaos scenarios
+
+## Community
+
+- **GitHub Discussions**: [Ask questions and share ideas](https://github.com/arielshad/balagan-agent/discussions)
+- **Issue Tracker**: [Report bugs and request features](https://github.com/arielshad/balagan-agent/issues)
+- **Twitter/X**: Follow for updates [@arielshad](https://twitter.com/arielshad)
+- **Sponsor**: [Support the project](https://github.com/sponsors/arielshad)
 
 ## Contributing
 
-Contributions welcome! Please read the contributing guidelines first.
+We welcome contributions of all kinds! Whether it's:
+
+- Bug reports and feature requests
+- Code contributions (new injectors, wrappers, metrics)
+- Documentation improvements
+- Example agents and scenarios
+- Blog posts and tutorials
+
+Please read our [Contributing Guide](CONTRIBUTING.md) and [Development Guide](DEVELOPMENT.md) to get started.
+
+### Contributors
+
+Thanks to all our contributors!
+
+<a href="https://github.com/arielshad/balagan-agent/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=arielshad/balagan-agent" />
+</a>
+
+## Roadmap
+
+### Current (v0.1.x)
+- ✅ Core chaos engine
+- ✅ Basic injectors (tool failure, delay, hallucination, context, budget)
+- ✅ CrewAI, AutoGen, LangChain wrappers
+- ✅ MTTR and reliability metrics
+- ✅ Multi-format reporting
+
+### Coming Soon (v0.2.x)
+- 🔄 Real-time chaos injection during agent execution
+- 🔄 Advanced metrics (latency percentiles, error budgets)
+- 🔄 Chaos schedules and campaigns
+- 🔄 Web dashboard for visualization
+- 🔄 More agent framework integrations (LangGraph, AutoGPT)
+
+### Future (v0.3.x+)
+- 📋 Distributed chaos experiments
+- 📋 ML-powered failure prediction
+- 📋 Custom injector plugins
+- 📋 Production chaos (with safeguards)
+- 📋 Cost impact analysis
+
+Have an idea? [Open a discussion](https://github.com/arielshad/balagan-agent/discussions)!
+
+## Comparison
+
+### BalaganAgent vs Manual Testing
+
+| Aspect | Manual Testing | BalaganAgent |
+|--------|----------------|--------------|
+| Coverage | Limited scenarios | Comprehensive failure modes |
+| Consistency | Varies by tester | Reproducible experiments |
+| Metrics | Manual tracking | Automated MTTR, recovery rate |
+| Scale | Time-consuming | Run 100s of tests easily |
+| Integration | N/A | Built-in CI/CD support |
+
+### BalaganAgent vs Traditional Chaos Tools
+
+Tools like Chaos Monkey and Gremlin are infrastructure-focused. BalaganAgent is purpose-built for AI agents:
+
+- **Agent-aware**: Understands LLMs, tools, context, prompts
+- **Semantic failures**: Injects hallucinations, not just network errors
+- **Agent metrics**: MTTR, recovery quality, reliability scoring
+- **Framework integration**: Works with CrewAI, AutoGen, LangChain
+
+## Credits
+
+Built with inspiration from:
+- [Chaos Monkey](https://netflix.github.io/chaosmonkey/) - Netflix's pioneering chaos engineering
+- [Gremlin](https://www.gremlin.com/) - Enterprise chaos engineering platform
+- [pytest](https://pytest.org/) - Python testing framework
+- The entire chaos engineering community
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details
+
+## Star History
+
+<a href="https://star-history.com/#arielshad/balagan-agent&Date">
+  <img src="https://api.star-history.com/svg?repos=arielshad/balagan-agent&type=Date" alt="Star History Chart" width="600">
+</a>
 
 ---
 
-*"Hope is not a strategy. Test your agents."*
+<div align="center">
+
+**"Hope is not a strategy. Test your agents."**
+
+Made with ❤️ by the reliability community
+
+[⭐ Star on GitHub](https://github.com/arielshad/balagan-agent) • [📦 PyPI Package](https://pypi.org/project/balagan-agent/) • [🐛 Report Bug](https://github.com/arielshad/balagan-agent/issues) • [💡 Request Feature](https://github.com/arielshad/balagan-agent/discussions)
+
+</div>

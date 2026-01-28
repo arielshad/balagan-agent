@@ -1,0 +1,26 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^http://localhost"
+    },
+    {
+      "pattern": "^https://twitter.com"
+    },
+    {
+      "pattern": ".*discussions$"
+    },
+    {
+      "pattern": ".*compare/v.*"
+    },
+    {
+      "pattern": "CODE_OF_CONDUCT.md"
+    }
+  ],
+  "replacementPatterns": [],
+  "httpHeaders": [],
+  "timeout": "30s",
+  "retryOn429": true,
+  "retryCount": 2,
+  "fallbackRetryDelay": "5s",
+  "aliveStatusCodes": [200, 206, 301, 302]
+}

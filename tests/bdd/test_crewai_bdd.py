@@ -5,6 +5,11 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_bdd import given, parsers, scenario, then, when
 
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
+
 
 # Fixtures for mock objects
 @pytest.fixture

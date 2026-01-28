@@ -1,0 +1,131 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in BalaganAgent
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below to help us investigate.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what went wrong...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Install balaganagent
+        2. Create a wrapper with '...'
+        3. Run experiment with '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The experiment should complete successfully...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: The experiment failed with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal Reproducible Example
+      description: Please provide a minimal code example that reproduces the issue
+      placeholder: |
+        ```python
+        from balaganagent import ChaosEngine
+        # Your code here
+        ```
+      render: python
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: BalaganAgent Version
+      description: What version of BalaganAgent are you using?
+      placeholder: "0.1.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you running?
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Agent Framework
+      description: Which agent framework are you using?
+      options:
+        - CrewAI
+        - LangChain
+        - AutoGen
+        - Custom/None
+        - Other (please specify in additional context)
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs/Stack Trace
+      description: Please paste any relevant error messages or stack traces
+      placeholder: |
+        Paste error logs here...
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here (OS, environment, etc.)
+      placeholder: Running on macOS 14.0, Docker environment, etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this bug hasn't been reported
+          required: true
+        - label: I have tested this with the latest version of BalaganAgent
+          required: false
+        - label: I have included a minimal reproducible example
+          required: false

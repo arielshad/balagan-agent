@@ -371,6 +371,7 @@ class ReliabilityScorer:
         recommendations = self._generate_recommendations(component_scores, raw_metrics)
 
         from typing import cast
+
         return ReliabilityReport(
             overall_score=overall_score,
             grade=self._determine_grade(availability),

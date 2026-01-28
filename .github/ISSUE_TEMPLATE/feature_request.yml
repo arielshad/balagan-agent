@@ -1,0 +1,108 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for BalaganAgent
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Help us understand your use case.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Is your feature request related to a problem?
+      placeholder: I'm frustrated when I try to test agents with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: I would like BalaganAgent to support...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: I've tried using... but it doesn't work because...
+    validations:
+      required: false
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Usage
+      description: Show us how you'd like to use this feature
+      placeholder: |
+        ```python
+        # Example of how the API might look
+        wrapper = ChaosWrapper(agent)
+        wrapper.enable_new_feature(...)
+        ```
+      render: python
+    validations:
+      required: false
+
+  - type: dropdown
+    id: feature-category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - New Injector
+        - New Metric
+        - Framework Integration
+        - CLI Enhancement
+        - Reporting/Visualization
+        - Documentation
+        - Developer Experience
+        - Other
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to your workflow?
+      options:
+        - Critical (blocking my work)
+        - High (would significantly improve my workflow)
+        - Medium (nice to have)
+        - Low (minor enhancement)
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: Add any other context about the feature request here...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to contribute this feature
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this hasn't been requested
+          required: true
+        - label: This feature aligns with BalaganAgent's mission (chaos engineering for AI agents)
+          required: true

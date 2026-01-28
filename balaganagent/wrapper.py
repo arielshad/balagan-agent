@@ -387,6 +387,7 @@ class AgentWrapper:
             tools = getattr(self._original_agent, "tools")
             if isinstance(tools, dict) and name in tools:
                 from typing import cast
+
                 return cast(Callable[..., Any], tools[name])
 
         # Try as attribute

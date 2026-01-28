@@ -7,8 +7,12 @@ calling the wrapped tools directly — this exercises the exact same
 chaos-injection path that a real crew execution would hit.
 """
 
-
 import pytest
+
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
 
 from balaganagent.wrappers.crewai import CrewAIWrapper
 

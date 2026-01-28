@@ -10,6 +10,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
+
 
 @pytest.fixture(autouse=True)
 def _fake_api_key(monkeypatch):

@@ -1,0 +1,61 @@
+name: Documentation Issue
+description: Report missing, unclear, or incorrect documentation
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve BalaganAgent's documentation!
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing documentation
+        - Unclear/confusing documentation
+        - Incorrect/outdated documentation
+        - Broken link
+        - Code example doesn't work
+        - Typo/grammar
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Where is the documentation issue? (URL or file path)
+      placeholder: "https://github.com/arielshad/balagan-agent/blob/main/README.md#L42"
+    validations:
+      required: false
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's Wrong?
+      description: Describe the issue with the current documentation
+      placeholder: The example in the quick start section doesn't work because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: The documentation should explain...
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help
+      placeholder: I was trying to... when I found this issue
+    validations:
+      required: false
