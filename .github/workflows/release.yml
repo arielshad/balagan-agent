@@ -31,10 +31,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install python-semantic-release[github]
 
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Run Semantic Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release publish
+        run: semantic-release
 
       - name: Check version bump
         if: always()
