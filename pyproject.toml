@@ -43,6 +43,7 @@ dev = [
     "black>=23.0",
     "ruff>=0.1",
     "mypy>=1.0",
+    "python-semantic-release>=9.0.0",
 ]
 
 # Optional dependencies for specific agent wrappers
@@ -122,3 +123,17 @@ exclude_lines = [
     "class .*Protocol.*:",
     "@(abc\\.)?abstractmethod",
 ]
+
+[tool.semantic_release]
+version_pattern = "v(?P<version>\\d+\\.\\d+\\.\\d+)"
+version_variables = [
+    "balaganagent/__init__.py:__version__",
+    "pyproject.toml:version",
+]
+build_command = "pip install build && python -m build"
+hvcs = "github"
+publish_to = ["github", "pypi"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+commit_message = "chore(release): {version}\n\nAutomatically generated release by python-semantic-release"
+tag_message = "chore(release): {version} [skip ci]"
