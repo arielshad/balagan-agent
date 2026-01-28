@@ -144,7 +144,7 @@ class ReportGenerator:
     def to_markdown(self, report: dict[str, Any]) -> str:
         """Convert report to Markdown format."""
         lines = [
-            "# AgentChaos Experiment Report",
+            "# BalaganAgent Experiment Report",
             "",
             f"**Generated:** {report['generated_at']}",
             "",
@@ -153,48 +153,56 @@ class ReportGenerator:
         ]
 
         summary = report["summary"]
-        lines.extend([
-            f"- **Total Experiments:** {summary['total_experiments']}",
-            f"- **Completed:** {summary['completed']}",
-            f"- **Failed:** {summary['failed']}",
-            f"- **Aborted:** {summary['aborted']}",
-            f"- **Total Operations:** {summary['total_operations']}",
-            f"- **Success Rate:** {summary['overall_success_rate']:.1%}",
-            f"- **Faults Injected:** {summary['total_faults_injected']}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"- **Total Experiments:** {summary['total_experiments']}",
+                f"- **Completed:** {summary['completed']}",
+                f"- **Failed:** {summary['failed']}",
+                f"- **Aborted:** {summary['aborted']}",
+                f"- **Total Operations:** {summary['total_operations']}",
+                f"- **Success Rate:** {summary['overall_success_rate']:.1%}",
+                f"- **Faults Injected:** {summary['total_faults_injected']}",
+                "",
+            ]
+        )
 
         # Reliability section
         if report.get("reliability"):
             reliability = report["reliability"]
-            lines.extend([
-                "## Reliability Metrics",
-                "",
-                f"- **Overall Score:** {reliability.get('overall_score', 'N/A')}",
-                f"- **Grade:** {reliability.get('grade', 'N/A')}",
-                f"- **Availability:** {reliability.get('availability', 'N/A')}",
-                f"- **MTTR:** {reliability.get('mttr_seconds', 'N/A')}s",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Reliability Metrics",
+                    "",
+                    f"- **Overall Score:** {reliability.get('overall_score', 'N/A')}",
+                    f"- **Grade:** {reliability.get('grade', 'N/A')}",
+                    f"- **Availability:** {reliability.get('availability', 'N/A')}",
+                    f"- **MTTR:** {reliability.get('mttr_seconds', 'N/A')}s",
+                    "",
+                ]
+            )
 
         # Experiments section
-        lines.extend([
-            "## Experiments",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Experiments",
+                "",
+            ]
+        )
 
         for exp in report["experiments"]:
             config = exp["config"]
-            lines.extend([
-                f"### {config['name']}",
-                "",
-                f"- **Status:** {exp['status']}",
-                f"- **Duration:** {exp['duration_seconds']:.2f}s",
-                f"- **Operations:** {exp['total_operations']}",
-                f"- **Success Rate:** {exp['success_rate']:.1%}",
-                f"- **Recovery Rate:** {exp['recovery_rate']:.1%}",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"### {config['name']}",
+                    "",
+                    f"- **Status:** {exp['status']}",
+                    f"- **Duration:** {exp['duration_seconds']:.2f}s",
+                    f"- **Operations:** {exp['total_operations']}",
+                    f"- **Success Rate:** {exp['success_rate']:.1%}",
+                    f"- **Recovery Rate:** {exp['recovery_rate']:.1%}",
+                    "",
+                ]
+            )
 
             if exp["faults_by_type"]:
                 lines.append("**Faults Injected:**")
@@ -203,10 +211,12 @@ class ReportGenerator:
                 lines.append("")
 
         # Recommendations
-        lines.extend([
-            "## Recommendations",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Recommendations",
+                "",
+            ]
+        )
         for i, rec in enumerate(report["recommendations"], 1):
             lines.append(f"{i}. {rec}")
 
@@ -231,7 +241,7 @@ class ReportGenerator:
         html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>AgentChaos Report</title>
+    <title>BalaganAgent Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; background: #f5f5f5; }}
         .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
@@ -250,7 +260,7 @@ class ReportGenerator:
 </head>
 <body>
     <div class="container">
-        <h1>AgentChaos Experiment Report</h1>
+        <h1>BalaganAgent Experiment Report</h1>
         <p>Generated: {report['generated_at']}</p>
         <p>Status: <span class="status-badge">{status_text}</span></p>
 
@@ -329,7 +339,7 @@ class ReportGenerator:
         lines = [
             "",
             f"{BOLD}{'='*60}{RESET}",
-            f"{BOLD}  AGENTCHAOS EXPERIMENT REPORT{RESET}",
+            f"{BOLD}  BALAGANAGENT EXPERIMENT REPORT{RESET}",
             f"{'='*60}",
             "",
             f"  Generated: {report['generated_at']}",
@@ -345,13 +355,15 @@ class ReportGenerator:
         # Reliability
         if report.get("reliability"):
             rel = report["reliability"]
-            lines.extend([
-                f"{BOLD}RELIABILITY{RESET}",
-                f"  Score: {rel.get('overall_score', 'N/A')}",
-                f"  Grade: {rel.get('grade', 'N/A')}",
-                f"  MTTR:  {rel.get('mttr_seconds', 'N/A')}s",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"{BOLD}RELIABILITY{RESET}",
+                    f"  Score: {rel.get('overall_score', 'N/A')}",
+                    f"  Grade: {rel.get('grade', 'N/A')}",
+                    f"  MTTR:  {rel.get('mttr_seconds', 'N/A')}s",
+                    "",
+                ]
+            )
 
         # Experiments
         lines.append(f"{BOLD}EXPERIMENTS{RESET}")
@@ -366,7 +378,9 @@ class ReportGenerator:
                 status_str = f"{YELLOW}{exp_status}{RESET}"
 
             lines.append(f"  {BLUE}{config['name']}{RESET} [{status_str}]")
-            lines.append(f"    Duration: {exp['duration_seconds']:.2f}s | Success: {exp['success_rate']:.1%} | Recovery: {exp['recovery_rate']:.1%}")
+            lines.append(
+                f"    Duration: {exp['duration_seconds']:.2f}s | Success: {exp['success_rate']:.1%} | Recovery: {exp['recovery_rate']:.1%}"
+            )
 
         lines.append("")
 

@@ -10,11 +10,11 @@ class ReliabilityGrade(Enum):
     """Reliability grades (inspired by SRE practices)."""
 
     FIVE_NINES = "99.999%"  # 5.26 minutes downtime/year
-    FOUR_NINES = "99.99%"   # 52.6 minutes downtime/year
-    THREE_NINES = "99.9%"   # 8.77 hours downtime/year
-    TWO_NINES = "99%"       # 3.65 days downtime/year
-    ONE_NINE = "90%"        # 36.5 days downtime/year
-    BELOW_90 = "<90%"       # More than 36.5 days downtime/year
+    FOUR_NINES = "99.99%"  # 52.6 minutes downtime/year
+    THREE_NINES = "99.9%"  # 8.77 hours downtime/year
+    TWO_NINES = "99%"  # 3.65 days downtime/year
+    ONE_NINE = "90%"  # 36.5 days downtime/year
+    BELOW_90 = "<90%"  # More than 36.5 days downtime/year
 
 
 @dataclass
@@ -47,12 +47,12 @@ class ReliabilityScorer:
 
     # SLO (Service Level Objective) defaults
     DEFAULT_SLOS = {
-        "availability": 0.99,       # 99% availability
-        "error_rate": 0.01,         # 1% max error rate
-        "latency_p50_ms": 100,      # 100ms p50
-        "latency_p90_ms": 500,      # 500ms p90
-        "latency_p99_ms": 2000,     # 2s p99
-        "mttr_seconds": 60,         # 1 minute MTTR
+        "availability": 0.99,  # 99% availability
+        "error_rate": 0.01,  # 1% max error rate
+        "latency_p50_ms": 100,  # 100ms p50
+        "latency_p90_ms": 500,  # 500ms p90
+        "latency_p99_ms": 2000,  # 2s p99
+        "mttr_seconds": 60,  # 1 minute MTTR
     }
 
     # Component weights for overall score
@@ -91,6 +91,7 @@ class ReliabilityScorer:
     ):
         """Record an operation result."""
         import time
+
         ts = timestamp or time.time()
 
         self._total_operations += 1
@@ -146,12 +147,11 @@ class ReliabilityScorer:
     def calculate_mtbf(self) -> float:
         """Calculate Mean Time Between Failures."""
         if len(self._failure_times) < 2:
-            return float('inf')
+            return float("inf")
 
         sorted_failures = sorted(self._failure_times)
         intervals = [
-            sorted_failures[i+1] - sorted_failures[i]
-            for i in range(len(sorted_failures) - 1)
+            sorted_failures[i + 1] - sorted_failures[i] for i in range(len(sorted_failures) - 1)
         ]
 
         return statistics.mean(intervals)
@@ -349,8 +349,7 @@ class ReliabilityScorer:
 
         # Calculate weighted overall score
         overall_score = sum(
-            component_scores[component] * weight
-            for component, weight in self.weights.items()
+            component_scores[component] * weight for component, weight in self.weights.items()
         )
 
         # Gather raw metrics

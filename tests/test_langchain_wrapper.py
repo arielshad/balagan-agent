@@ -14,7 +14,7 @@ class TestLangChainAgentWrapper:
 
     def test_wrapper_creation(self):
         """Test that wrapper can be created with mock LangChain agent."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         # Create mock agent
         mock_agent = MagicMock()
@@ -26,7 +26,7 @@ class TestLangChainAgentWrapper:
 
     def test_wrapper_with_chaos_level(self):
         """Test wrapper can be configured with chaos level."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         wrapper = LangChainAgentWrapper(mock_agent, chaos_level=0.5)
@@ -34,7 +34,7 @@ class TestLangChainAgentWrapper:
 
     def test_wrap_tools(self):
         """Test that agent tools are properly wrapped."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         # Create mock tools
         mock_tool1 = MagicMock()
@@ -56,7 +56,7 @@ class TestLangChainAgentWrapper:
 
     def test_invoke_with_chaos(self):
         """Test that invoke runs with chaos injection."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -70,7 +70,7 @@ class TestLangChainAgentWrapper:
 
     def test_invoke_with_config(self):
         """Test invoke with additional config."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -86,7 +86,7 @@ class TestLangChainAgentWrapper:
 
     def test_stream_method(self):
         """Test streaming responses through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -99,7 +99,7 @@ class TestLangChainAgentWrapper:
 
     def test_get_metrics(self):
         """Test that metrics are collected properly."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -114,9 +114,9 @@ class TestLangChainAgentWrapper:
 
     def test_chaos_injection_on_tools(self):
         """Test that chaos can be injected into tool calls."""
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_tool = MagicMock()
         mock_tool.name = "flaky_tool"
@@ -136,7 +136,7 @@ class TestLangChainAgentWrapper:
 
     def test_reset_wrapper(self):
         """Test wrapper state reset."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -154,7 +154,7 @@ class TestLangChainAgentWrapper:
 
     def test_experiment_context(self):
         """Test running agent within an experiment context."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -171,13 +171,11 @@ class TestLangChainAgentWrapper:
 
     def test_batch_invoke(self):
         """Test batch invocation of multiple inputs."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
-        mock_agent.batch = MagicMock(
-            return_value=[{"output": "r1"}, {"output": "r2"}]
-        )
+        mock_agent.batch = MagicMock(return_value=[{"output": "r1"}, {"output": "r2"}])
 
         wrapper = LangChainAgentWrapper(mock_agent, chaos_level=0.0)
         results = wrapper.batch([{"input": "q1"}, {"input": "q2"}])
@@ -187,7 +185,7 @@ class TestLangChainAgentWrapper:
 
     def test_configure_chaos_all_options(self):
         """Test configuring chaos with all options."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -210,7 +208,7 @@ class TestLangChainToolProxy:
 
     def test_tool_proxy_creation(self):
         """Test tool proxy is created correctly."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         mock_tool = MagicMock()
         mock_tool.name = "test_tool"
@@ -221,7 +219,7 @@ class TestLangChainToolProxy:
 
     def test_tool_proxy_call(self):
         """Test tool proxy calls the underlying tool."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         mock_tool = MagicMock()
         mock_tool.name = "test_tool"
@@ -235,7 +233,7 @@ class TestLangChainToolProxy:
 
     def test_tool_proxy_records_call_history(self):
         """Test tool proxy records call history."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         mock_tool = MagicMock()
         mock_tool.name = "tracked_tool"
@@ -252,18 +250,14 @@ class TestLangChainToolProxy:
 
     def test_tool_proxy_retry_on_failure(self):
         """Test tool proxy retries on transient failures."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         mock_tool = MagicMock()
         mock_tool.name = "flaky_tool"
         # Fail twice, then succeed
-        mock_tool.func = MagicMock(
-            side_effect=[Exception("fail1"), Exception("fail2"), "success"]
-        )
+        mock_tool.func = MagicMock(side_effect=[Exception("fail1"), Exception("fail2"), "success"])
 
-        proxy = LangChainToolProxy(
-            mock_tool, chaos_level=0.0, max_retries=3, retry_delay=0.01
-        )
+        proxy = LangChainToolProxy(mock_tool, chaos_level=0.0, max_retries=3, retry_delay=0.01)
         result = proxy()
 
         assert result == "success"
@@ -275,7 +269,7 @@ class TestLangChainChainWrapper:
 
     def test_chain_wrapper_creation(self):
         """Test chain wrapper creation."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         mock_chain = MagicMock()
         wrapper = LangChainChainWrapper(mock_chain)
@@ -283,7 +277,7 @@ class TestLangChainChainWrapper:
 
     def test_chain_invoke(self):
         """Test chain invocation through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         mock_chain = MagicMock()
         mock_chain.invoke = MagicMock(return_value="chain output")
@@ -296,7 +290,7 @@ class TestLangChainChainWrapper:
 
     def test_chain_stream(self):
         """Test chain streaming through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         mock_chain = MagicMock()
         mock_chain.stream = MagicMock(return_value=iter(["a", "b", "c"]))
@@ -308,7 +302,7 @@ class TestLangChainChainWrapper:
 
     def test_chain_batch(self):
         """Test chain batch invocation."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         mock_chain = MagicMock()
         mock_chain.batch = MagicMock(return_value=["r1", "r2", "r3"])
@@ -320,7 +314,7 @@ class TestLangChainChainWrapper:
 
     def test_chain_metrics(self):
         """Test metrics tracking for chain."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         mock_chain = MagicMock()
         mock_chain.invoke = MagicMock(return_value="output")
@@ -339,7 +333,7 @@ class TestLangChainAsyncSupport:
     @pytest.mark.asyncio
     async def test_async_invoke(self):
         """Test async invocation through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -353,7 +347,7 @@ class TestLangChainAsyncSupport:
     @pytest.mark.asyncio
     async def test_async_stream(self):
         """Test async streaming through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         async def mock_astream(*args, **kwargs):
             for chunk in ["c1", "c2", "c3"]:
@@ -373,7 +367,7 @@ class TestLangChainAsyncSupport:
     @pytest.mark.asyncio
     async def test_async_batch(self):
         """Test async batch through wrapper."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         mock_agent = MagicMock()
         mock_agent.tools = []
@@ -390,14 +384,14 @@ class TestLangChainCallbackIntegration:
 
     def test_callback_handler_creation(self):
         """Test chaos callback handler creation."""
-        from agentchaos.wrappers.langchain import ChaosCallbackHandler
+        from balaganagent.wrappers.langchain import ChaosCallbackHandler
 
         handler = ChaosCallbackHandler(chaos_level=0.5)
         assert handler.chaos_level == 0.5
 
     def test_callback_records_events(self):
         """Test callback handler records events."""
-        from agentchaos.wrappers.langchain import ChaosCallbackHandler
+        from balaganagent.wrappers.langchain import ChaosCallbackHandler
 
         handler = ChaosCallbackHandler(chaos_level=0.0)
 
@@ -410,7 +404,7 @@ class TestLangChainCallbackIntegration:
 
     def test_callback_metrics(self):
         """Test callback handler provides metrics."""
-        from agentchaos.wrappers.langchain import ChaosCallbackHandler
+        from balaganagent.wrappers.langchain import ChaosCallbackHandler
 
         handler = ChaosCallbackHandler(chaos_level=0.0)
         handler.on_tool_start({"name": "search"}, "query")

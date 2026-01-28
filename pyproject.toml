@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentchaos"
+name = "balaganagent"
 version = "0.1.0"
 description = "Chaos engineering framework for AI agents - stress-test agent reliability"
 readme = "README.md"
@@ -75,16 +75,16 @@ all-wrappers = [
 ]
 
 [project.scripts]
-agentchaos = "agentchaos.cli:main"
+balaganagent = "balaganagent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/arielshad/agent-chaos"
-Documentation = "https://github.com/arielshad/agent-chaos#readme"
-Repository = "https://github.com/arielshad/agent-chaos"
-Issues = "https://github.com/arielshad/agent-chaos/issues"
+Homepage = "https://github.com/arielshad/balagan-agent"
+Documentation = "https://github.com/arielshad/balagan-agent#readme"
+Repository = "https://github.com/arielshad/balagan-agent"
+Issues = "https://github.com/arielshad/balagan-agent/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["agentchaos"]
+packages = ["balaganagent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

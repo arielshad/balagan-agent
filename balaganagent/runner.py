@@ -169,7 +169,11 @@ class ExperimentRunner:
                 failure_reason = str(e)
 
         end_time = time.time()
-        experiment_result = self.chaos_engine.end_experiment() if self.chaos_engine._active_experiment else experiment.complete()
+        experiment_result = (
+            self.chaos_engine.end_experiment()
+            if self.chaos_engine._active_experiment
+            else experiment.complete()
+        )
 
         # Gather metrics
         result = RunResult(
@@ -252,12 +256,14 @@ class ExperimentRunner:
                     self._logger.log(f"  Progress: {i}/{iterations} iterations completed", "dim")
 
                 result = self.run_scenario(scenario, chaos_level=level)
-                level_results.append({
-                    "passed": result.passed,
-                    "duration": result.duration_seconds,
-                    "success_rate": result.experiment_result.success_rate,
-                    "recovery_rate": result.experiment_result.recovery_rate,
-                })
+                level_results.append(
+                    {
+                        "passed": result.passed,
+                        "duration": result.duration_seconds,
+                        "success_rate": result.experiment_result.success_rate,
+                        "recovery_rate": result.experiment_result.recovery_rate,
+                    }
+                )
 
             # Aggregate level results
             passed_count = sum(1 for r in level_results if r["passed"])
@@ -290,15 +296,11 @@ class ExperimentRunner:
 
         total_duration = sum(r.duration_seconds for r in self._results)
         passed_count = sum(1 for r in self._results if r.passed)
-        total_operations = sum(
-            r.experiment_result.total_operations for r in self._results
-        )
+        total_operations = sum(r.experiment_result.total_operations for r in self._results)
         successful_operations = sum(
             r.experiment_result.successful_operations for r in self._results
         )
-        faults_injected = sum(
-            r.experiment_result.faults_injected for r in self._results
-        )
+        faults_injected = sum(r.experiment_result.faults_injected for r in self._results)
 
         return {
             "total_runs": len(self._results),

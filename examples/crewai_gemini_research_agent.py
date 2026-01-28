@@ -25,8 +25,6 @@ from __future__ import annotations
 import os
 import re
 import sys
-import textwrap
-from contextlib import redirect_stdout
 from datetime import datetime
 from typing import Optional
 
@@ -299,7 +297,7 @@ def main():
         # Open log file and redirect output to both console and file
         with open(log_filename, "w", encoding="utf-8") as log_file:
             # Write header to log file
-            log_file.write(f"CrewAI Research Agent Log\n")
+            log_file.write("CrewAI Research Agent Log\n")
             log_file.write(f"Topic: {topic}\n")
             log_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
             log_file.write("=" * 60 + "\n\n")

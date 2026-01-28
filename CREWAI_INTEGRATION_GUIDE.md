@@ -1,6 +1,6 @@
 # CrewAI Chaos Testing Integration Guide
 
-**A step-by-step guide to stress-test your existing CrewAI agents with AgentChaos**
+**A step-by-step guide to stress-test your existing CrewAI agents with BalaganAgent**
 
 ---
 
@@ -30,8 +30,8 @@ Before you start, make sure you have:
 ## Installation
 
 ```bash
-# Install AgentChaos
-pip install agentchaos
+# Install BalaganAgent
+pip install balaganagent
 
 # If you don't have CrewAI yet
 pip install crewai
@@ -67,7 +67,7 @@ result = crew.kickoff()
 ### Add Chaos Testing (3 lines!)
 
 ```python
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 # Wrap your crew with chaos
 wrapper = CrewAIWrapper(crew, chaos_level=0.5)
@@ -92,7 +92,7 @@ That's it! Your crew now runs with chaos injection. 🎉
 Add this import at the top of your file:
 
 ```python
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 ```
 
 ### Step 2: Create Your Crew (as usual)
@@ -143,7 +143,7 @@ crew = Crew(
 )
 ```
 
-### Step 3: Wrap Your Crew with AgentChaos
+### Step 3: Wrap Your Crew with BalaganAgent
 
 Wrap the crew before running it:
 
@@ -298,8 +298,8 @@ except Exception as e:
 Test only certain tools that are critical or unreliable:
 
 ```python
-from agentchaos.injectors import ToolFailureInjector
-from agentchaos.injectors.tool_failure import ToolFailureConfig
+from balaganagent.injectors import ToolFailureInjector
+from balaganagent.injectors.tool_failure import ToolFailureConfig
 
 # Create wrapper without auto-configuration
 wrapper = CrewAIWrapper(crew, chaos_level=0.0)
@@ -347,7 +347,7 @@ print(f"\nOverall Success Rate: {success_rate:.1f}%")
 Create your own fault injection patterns:
 
 ```python
-from agentchaos.injectors.tool_failure import ToolFailureInjector, ToolFailureConfig, FailureMode
+from balaganagent.injectors.tool_failure import ToolFailureInjector, ToolFailureConfig, FailureMode
 
 # Configure specific failure types
 custom_injector = ToolFailureInjector(ToolFailureConfig(
@@ -368,8 +368,8 @@ wrapper.add_injector(custom_injector)
 Simulate different network conditions:
 
 ```python
-from agentchaos.injectors import DelayInjector
-from agentchaos.injectors.delay import DelayConfig, DelayPattern
+from balaganagent.injectors import DelayInjector
+from balaganagent.injectors.delay import DelayConfig, DelayPattern
 
 # Simulate poor network with spikes
 delay_injector = DelayInjector(DelayConfig(
@@ -414,7 +414,7 @@ for exp_result in experiments:
 See exactly what's happening during chaos testing:
 
 ```python
-from agentchaos import set_verbose
+from balaganagent import set_verbose
 
 # Enable globally
 set_verbose(True)
@@ -476,7 +476,7 @@ wrapper.configure_chaos(chaos_level=1.0, enable_tool_failures=True,
 ```python
 # tests/test_crew_resilience.py
 import pytest
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 def test_crew_handles_tool_failures():
     """Test crew can handle 50% tool failure rate."""
@@ -587,11 +587,11 @@ metrics = wrapper.get_metrics()
 
 ## Troubleshooting
 
-### Problem: "ModuleNotFoundError: No module named 'agentchaos'"
+### Problem: "ModuleNotFoundError: No module named 'balaganagent'"
 
 **Solution:**
 ```bash
-pip install agentchaos
+pip install balaganagent
 # Or if developing locally:
 pip install -e .
 ```
@@ -600,7 +600,7 @@ pip install -e .
 
 **Solution:** You have an older version. Update to the latest:
 ```bash
-pip install --upgrade agentchaos
+pip install --upgrade balaganagent
 ```
 
 ### Problem: Crew fails immediately with chaos enabled
@@ -660,8 +660,8 @@ wrapper = CrewAIWrapper(crew, chaos_level=0.0)
 all_tools = wrapper.get_wrapped_tools()
 
 # Add injector only to specific tools (exclude critical ones)
-from agentchaos.injectors import ToolFailureInjector
-from agentchaos.injectors.tool_failure import ToolFailureConfig
+from balaganagent.injectors import ToolFailureInjector
+from balaganagent.injectors.tool_failure import ToolFailureConfig
 
 injector = ToolFailureInjector(ToolFailureConfig(probability=0.3))
 
@@ -685,8 +685,8 @@ import sys
 from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 
-from agentchaos import set_verbose
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent import set_verbose
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 
 def create_research_crew(topic: str) -> Crew:
@@ -824,8 +824,8 @@ python chaos_test.py --chaos-level 2.0 --verbose
 ## Need Help?
 
 - 📖 Read the [main README](README.md) for more details
-- 💬 Ask questions in [GitHub Issues](https://github.com/anthropics/agent-chaos/issues)
-- 🐛 Report bugs in [GitHub Issues](https://github.com/anthropics/agent-chaos/issues)
+- 💬 Ask questions in [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
+- 🐛 Report bugs in [GitHub Issues](https://github.com/anthropics/balagan-agent/issues)
 - ⭐ Star the repo if this helped you!
 
 ---

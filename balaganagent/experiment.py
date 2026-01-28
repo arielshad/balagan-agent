@@ -64,7 +64,9 @@ class ExperimentEvent:
     experiment_id: str
 
     @classmethod
-    def create(cls, event_type: str, details: dict[str, Any], experiment_id: str) -> "ExperimentEvent":
+    def create(
+        cls, event_type: str, details: dict[str, Any], experiment_id: str
+    ) -> "ExperimentEvent":
         return cls(
             timestamp=time.time(),
             event_type=event_type,
@@ -187,10 +189,13 @@ class Experiment:
         self.status = ExperimentStatus.RUNNING
         self._start_time = time.time()
 
-        self._record_event("experiment_started", {
-            "config_name": self.config.name,
-            "chaos_level": self.config.chaos_level,
-        })
+        self._record_event(
+            "experiment_started",
+            {
+                "config_name": self.config.name,
+                "chaos_level": self.config.chaos_level,
+            },
+        )
 
     def operation(self, name: str) -> "OperationContext":
         """Create an operation context for tracking."""
@@ -228,15 +233,19 @@ class Experiment:
         else:
             self._consecutive_failures += 1
             if error:
-                self._errors.append({
-                    "operation": name,
-                    "error": error,
-                    "timestamp": time.time(),
-                })
+                self._errors.append(
+                    {
+                        "operation": name,
+                        "error": error,
+                        "timestamp": time.time(),
+                    }
+                )
 
         # Check abort conditions
-        if (self.config.abort_on_critical_failure and
-            self._consecutive_failures >= self.config.max_consecutive_failures):
+        if (
+            self.config.abort_on_critical_failure
+            and self._consecutive_failures >= self.config.max_consecutive_failures
+        ):
             self.abort(f"Too many consecutive failures: {self._consecutive_failures}")
 
         self._record_event("operation_completed", operation)
@@ -244,10 +253,13 @@ class Experiment:
     def record_recovery(self, operation_name: str, recovery_time: float):
         """Record a recovery event."""
         self._metrics["recovery_times"].append(recovery_time)
-        self._record_event("recovery", {
-            "operation": operation_name,
-            "recovery_time": recovery_time,
-        })
+        self._record_event(
+            "recovery",
+            {
+                "operation": operation_name,
+                "recovery_time": recovery_time,
+            },
+        )
 
     def abort(self, reason: str):
         """Abort the experiment."""

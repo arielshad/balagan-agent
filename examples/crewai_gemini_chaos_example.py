@@ -1,7 +1,7 @@
-"""AgentChaos Example — Testing CrewAI Gemini Research Agent with Chaos Engineering.
+"""BalaganAgent Example — Testing CrewAI Gemini Research Agent with Chaos Engineering.
 
 This script demonstrates how to apply chaos engineering to the CrewAI research agent
-using the AgentChaos framework. It shows various failure scenarios and how agents
+using the BalaganAgent framework. It shows various failure scenarios and how agents
 handle degraded conditions.
 
 Key Chaos Scenarios:
@@ -11,7 +11,7 @@ Key Chaos Scenarios:
   4. Data Corruption — Tools return malformed or incomplete data
 
 Dependencies:
-  - agentchaos
+  - balaganagent
   - crewai>=0.28.0
   - langchain-google-genai
   - python-dotenv
@@ -28,22 +28,18 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from typing import Optional
 
 # Import the research agent components
 from crewai_gemini_research_agent import (
     build_research_crew,
-    create_researcher_agent,
-    create_writer_agent,
-    create_tools,
     get_gemini_llm,
 )
 
 try:
-    from agentchaos import set_verbose
-    from agentchaos.wrappers.crewai import CrewAIWrapper
+    from balaganagent import set_verbose
+    from balaganagent.wrappers.crewai import CrewAIWrapper
 except ImportError:
-    print("❌ AgentChaos not installed. Install with: pip install -e .")
+    print("❌ BalaganAgent not installed. Install with: pip install -e .")
     sys.exit(1)
 
 
@@ -71,7 +67,7 @@ def scenario_tool_failures(topic: str = "quantum computing", verbose: bool = Fal
         llm = get_gemini_llm()
         crew = build_research_crew(topic=topic, llm=llm)
 
-        # Wrap with AgentChaos - configure 50% tool failure rate
+        # Wrap with BalaganAgent - configure 50% tool failure rate
         wrapper = CrewAIWrapper(crew, chaos_level=0.5, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=5.0,  # High chaos level for 50% failure rate
@@ -103,10 +99,10 @@ def scenario_tool_failures(topic: str = "quantum computing", verbose: bool = Fal
         # Calculate aggregate success rate
         total_calls = 0
         total_failures = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total_calls += ops.get('total', 0)
-            total_failures += ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total_calls += ops.get("total", 0)
+            total_failures += ops.get("failed", 0)
 
         if total_calls > 0:
             success_rate = ((total_calls - total_failures) / total_calls) * 100
@@ -138,7 +134,7 @@ def scenario_latency_injection(topic: str = "blockchain", verbose: bool = False)
         llm = get_gemini_llm()
         crew = build_research_crew(topic=topic, llm=llm)
 
-        # Wrap with AgentChaos - add delays
+        # Wrap with BalaganAgent - add delays
         wrapper = CrewAIWrapper(crew, chaos_level=0.3, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=3.0,  # High chaos level for frequent delays
@@ -169,10 +165,10 @@ def scenario_latency_injection(topic: str = "blockchain", verbose: bool = False)
         # Calculate average latency
         total_latency = 0.0
         total_calls = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            latency = tool_metrics.get('latency', {})
-            count = tool_metrics.get('operations', {}).get('total', 0)
-            mean_ms = latency.get('mean_ms', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            latency = tool_metrics.get("latency", {})
+            count = tool_metrics.get("operations", {}).get("total", 0)
+            mean_ms = latency.get("mean_ms", 0)
             total_latency += mean_ms * count
             total_calls += count
 
@@ -232,10 +228,10 @@ def scenario_partial_failures(topic: str = "machine learning", verbose: bool = F
         print("\n📊 Chaos Statistics:")
 
         # Show per-tool failure rates
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total = ops.get('total', 0)
-            failed = ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total = ops.get("total", 0)
+            failed = ops.get("failed", 0)
             if total > 0:
                 failure_rate = (failed / total) * 100
                 print(f"  {tool_name}: {total} calls, {failed} failures ({failure_rate:.1f}%)")
@@ -263,7 +259,7 @@ def scenario_data_corruption(topic: str = "cybersecurity", verbose: bool = False
         llm = get_gemini_llm()
         crew = build_research_crew(topic=topic, llm=llm)
 
-        # Wrap with AgentChaos - enable hallucinations (data corruption)
+        # Wrap with BalaganAgent - enable hallucinations (data corruption)
         wrapper = CrewAIWrapper(crew, chaos_level=0.3, verbose=verbose)
         wrapper.configure_chaos(
             chaos_level=3.0,
@@ -292,10 +288,10 @@ def scenario_data_corruption(topic: str = "cybersecurity", verbose: bool = False
 
         # Count corrupted operations
         corrupted_count = 0
-        for tool_name, tool_metrics in metrics['tools'].items():
-            faults = tool_metrics.get('faults', {})
-            corrupted_count += faults.get('hallucination', 0)
-            corrupted_count += faults.get('context_corruption', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            faults = tool_metrics.get("faults", {})
+            corrupted_count += faults.get("hallucination", 0)
+            corrupted_count += faults.get("context_corruption", 0)
 
         print(f"Corrupted operations: {corrupted_count}")
 
@@ -354,17 +350,17 @@ def scenario_stress_test(topic: str = "artificial intelligence", verbose: bool =
         total_latency = 0.0
         fault_counts = {}
 
-        for tool_name, tool_metrics in metrics['tools'].items():
-            ops = tool_metrics.get('operations', {})
-            total_calls += ops.get('total', 0)
-            total_failures += ops.get('failed', 0)
+        for tool_name, tool_metrics in metrics["tools"].items():
+            ops = tool_metrics.get("operations", {})
+            total_calls += ops.get("total", 0)
+            total_failures += ops.get("failed", 0)
 
-            latency = tool_metrics.get('latency', {})
-            mean_ms = latency.get('mean_ms', 0)
-            count = ops.get('total', 0)
+            latency = tool_metrics.get("latency", {})
+            mean_ms = latency.get("mean_ms", 0)
+            count = ops.get("total", 0)
             total_latency += mean_ms * count
 
-            faults = tool_metrics.get('faults', {})
+            faults = tool_metrics.get("faults", {})
             for fault_type, count in faults.items():
                 fault_counts[fault_type] = fault_counts.get(fault_type, 0) + count
 
@@ -419,7 +415,7 @@ def main():
         set_verbose(True)
 
     print("\n" + "=" * 70)
-    print("🌪️  AgentChaos — CrewAI Research Agent Chaos Testing")
+    print("🌪️  BalaganAgent — CrewAI Research Agent Chaos Testing")
     print("=" * 70)
 
     try:
@@ -463,7 +459,7 @@ def main():
     except ImportError as e:
         print(f"\n❌ Dependency error: {e}")
         print("\nInstall required packages:")
-        print("  pip install agentchaos crewai langchain-google-genai python-dotenv")
+        print("  pip install balaganagent crewai langchain-google-genai python-dotenv")
         sys.exit(1)
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")

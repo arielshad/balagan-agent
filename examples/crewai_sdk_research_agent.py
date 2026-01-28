@@ -20,10 +20,10 @@ import textwrap
 from crewai import Agent, Crew, Process, Task
 from crewai.tools import tool
 
-
 # ---------------------------------------------------------------------------
 # Tools (deterministic, no LLM needed)
 # ---------------------------------------------------------------------------
+
 
 @tool("search_web")
 def search_web(query: str) -> str:
@@ -68,6 +68,7 @@ def save_report(content: str) -> str:
 # Tool factories (fresh instances to avoid singleton mutation by chaos wrappers)
 # ---------------------------------------------------------------------------
 
+
 def _make_search_web():
     @tool("search_web")
     def _search_web(query: str) -> str:
@@ -81,6 +82,7 @@ def _make_search_web():
             f"2. Recent advances in {query.lower()} include improved algorithms.\n"
             f"3. Experts recommend starting with foundational papers on {query.lower()}.\n"
         )
+
     return _search_web
 
 
@@ -96,6 +98,7 @@ def _make_summarize_text():
             return "No content to summarize."
         kept = sentences[:3]
         return " ".join(kept)
+
     return _summarize_text
 
 
@@ -108,6 +111,7 @@ def _make_save_report():
         """
         word_count = len(content.split())
         return f"Report saved successfully ({word_count} words)."
+
     return _save_report
 
 
@@ -119,6 +123,7 @@ def create_tools() -> tuple:
 # ---------------------------------------------------------------------------
 # Agent & Task factories
 # ---------------------------------------------------------------------------
+
 
 def create_researcher_agent() -> Agent:
     """Create the researcher agent with search and summarize tools."""

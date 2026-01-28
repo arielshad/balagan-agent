@@ -1,4 +1,4 @@
-"""Stress tests for the CrewAI SDK research agent using AgentChaos.
+"""Stress tests for the CrewAI SDK research agent using BalaganAgent.
 
 Uses the REAL CrewAI SDK objects (Agent, Task, Crew) wrapped by
 CrewAIWrapper to inject chaos into the tool layer.  Since the crew
@@ -7,11 +7,10 @@ calling the wrapped tools directly — this exercises the exact same
 chaos-injection path that a real crew execution would hit.
 """
 
-import os
 
 import pytest
 
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -25,7 +24,7 @@ def _fake_api_key(monkeypatch):
 
 @pytest.fixture
 def research_crew():
-    """Build a real CrewAI Crew wrapped with AgentChaos."""
+    """Build a real CrewAI Crew wrapped with BalaganAgent."""
     from examples.crewai_sdk_research_agent import build_research_crew
 
     crew = build_research_crew(topic="chaos engineering")
@@ -90,8 +89,8 @@ class TestCrewAISDKStressToolFailures:
     """Inject tool failures into real CrewAI SDK tools."""
 
     def test_injector_attaches_to_tools(self, research_crew):
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
 
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
         research_crew.add_injector(injector)
@@ -100,12 +99,10 @@ class TestCrewAISDKStressToolFailures:
             assert len(proxy._injectors) >= 1
 
     def test_some_calls_fail_under_full_chaos(self, research_crew):
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1000)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1000))
         research_crew.add_injector(injector)
 
         failures = 0
@@ -119,12 +116,10 @@ class TestCrewAISDKStressToolFailures:
         assert failures > 0
 
     def test_metrics_track_failures(self, research_crew):
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
 
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1000)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1000))
         research_crew.add_injector(injector)
 
         for _ in range(10):
@@ -133,9 +128,7 @@ class TestCrewAISDKStressToolFailures:
         metrics = research_crew.get_metrics()
         tool_metrics = metrics["tools"]
         # At least one tool should have recorded calls
-        total_calls = sum(
-            t.get("latency", {}).get("count", 0) for t in tool_metrics.values()
-        )
+        total_calls = sum(t.get("latency", {}).get("count", 0) for t in tool_metrics.values())
         assert total_calls > 0
 
 
@@ -143,12 +136,10 @@ class TestCrewAISDKStressDelays:
     """Inject delays into real CrewAI SDK tools."""
 
     def test_crew_completes_under_delays(self, research_crew):
-        from agentchaos.injectors import DelayInjector
-        from agentchaos.injectors.delay import DelayConfig
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
 
-        injector = DelayInjector(
-            DelayConfig(probability=1.0, min_delay_ms=1, max_delay_ms=2)
-        )
+        injector = DelayInjector(DelayConfig(probability=1.0, min_delay_ms=1, max_delay_ms=2))
         research_crew.add_injector(injector)
 
         results = _call_all_tools(research_crew, "delay test")

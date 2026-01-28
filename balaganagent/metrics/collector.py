@@ -25,12 +25,14 @@ class MetricSeries:
 
     def add(self, value: float, labels: Optional[dict[str, str]] = None):
         """Add a data point."""
-        self.points.append(MetricPoint(
-            name=self.name,
-            value=value,
-            timestamp=time.time(),
-            labels=labels or {},
-        ))
+        self.points.append(
+            MetricPoint(
+                name=self.name,
+                value=value,
+                timestamp=time.time(),
+                labels=labels or {},
+            )
+        )
 
     @property
     def values(self) -> list[float]:
@@ -200,20 +202,28 @@ class MetricsCollector:
         recovery_method: str = "retry",
     ):
         """Record a recovery event."""
-        self.record("recovery_time_ms", recovery_time_ms, {
-            "operation": operation_name,
-            "method": recovery_method,
-        })
+        self.record(
+            "recovery_time_ms",
+            recovery_time_ms,
+            {
+                "operation": operation_name,
+                "method": recovery_method,
+            },
+        )
         self.increment("recoveries_total")
 
     def record_fault_injection(self, fault_type: str, target: str):
         """Record a fault injection event."""
         self.increment(f"injections_{fault_type}")
         self.increment("injections_total")
-        self.record("fault_injection_rate", 1.0, {
-            "fault_type": fault_type,
-            "target": target,
-        })
+        self.record(
+            "fault_injection_rate",
+            1.0,
+            {
+                "fault_type": fault_type,
+                "target": target,
+            },
+        )
 
     def get_summary(self) -> dict[str, Any]:
         """Get a summary of all collected metrics."""
@@ -252,11 +262,14 @@ class MetricsCollector:
             summary["recovery_time"] = recovery_series.summary()
 
         # Add per-fault-type stats
-        fault_types = ["tool_failure", "delay", "hallucination", "context_corruption", "budget_exhaustion"]
-        summary["faults_by_type"] = {
-            ft: self.get_counter(f"faults_{ft}")
-            for ft in fault_types
-        }
+        fault_types = [
+            "tool_failure",
+            "delay",
+            "hallucination",
+            "context_corruption",
+            "budget_exhaustion",
+        ]
+        summary["faults_by_type"] = {ft: self.get_counter(f"faults_{ft}") for ft in fault_types}
 
         return summary
 
@@ -273,16 +286,16 @@ class MetricsCollector:
 
         # Export counters
         for name, value in self._counters.items():
-            lines.append(f"agentchaos_{name} {value}")
+            lines.append(f"balaganagent_{name} {value}")
 
         # Export series summaries
         for name, series in self._series.items():
             if series.count > 0:
-                lines.append(f"agentchaos_{name}_count {series.count}")
-                lines.append(f"agentchaos_{name}_mean {series.mean()}")
-                lines.append(f"agentchaos_{name}_p50 {series.percentile(50)}")
-                lines.append(f"agentchaos_{name}_p90 {series.percentile(90)}")
-                lines.append(f"agentchaos_{name}_p99 {series.percentile(99)}")
+                lines.append(f"balaganagent_{name}_count {series.count}")
+                lines.append(f"balaganagent_{name}_mean {series.mean()}")
+                lines.append(f"balaganagent_{name}_p50 {series.percentile(50)}")
+                lines.append(f"balaganagent_{name}_p90 {series.percentile(90)}")
+                lines.append(f"balaganagent_{name}_p99 {series.percentile(99)}")
 
         return "\n".join(lines)
 

@@ -1,15 +1,14 @@
-"""Verbose logging utilities for AgentChaos."""
+"""Verbose logging utilities for BalaganAgent."""
 
 import sys
 import time
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Any, Optional
 
 
 class VerboseLogger:
     """
-    Logger for verbose output in AgentChaos.
+    Logger for verbose output in BalaganAgent.
 
     Provides colored, structured logging for chaos engineering events
     including tool calls, fault injections, and experiment progress.
@@ -148,7 +147,10 @@ class VerboseLogger:
             return
 
         status = "✓ successful" if success else "✗ failed"
-        self.log(f"🔄 Recovery {status} for {tool_name} after {retries} retries", "green" if success else "red")
+        self.log(
+            f"🔄 Recovery {status} for {tool_name} after {retries} retries",
+            "green" if success else "red",
+        )
 
     def experiment_start(self, name: str, chaos_level: float):
         """Log experiment start."""

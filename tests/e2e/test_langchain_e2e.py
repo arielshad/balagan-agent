@@ -113,13 +113,12 @@ class MockChain:
         return [self.invoke(inp, **kwargs) for inp in inputs]
 
 
-
 class TestLangChainE2EWorkflow:
     """End-to-end tests for LangChain workflow with chaos injection."""
 
     def test_simple_agent_workflow_no_chaos(self):
         """Test a simple agent workflow without chaos injection."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         # Create mock tools
         def search_func(query: str) -> str:
@@ -149,9 +148,9 @@ class TestLangChainE2EWorkflow:
 
     def test_agent_workflow_with_tool_failure_injection(self):
         """Test agent workflow with tool failure chaos injection."""
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         call_count = 0
 
@@ -166,9 +165,7 @@ class TestLangChainE2EWorkflow:
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
 
         # Add failure injector
-        injector = ToolFailureInjector(
-            ToolFailureConfig(probability=1.0, max_injections=1)
-        )
+        injector = ToolFailureInjector(ToolFailureConfig(probability=1.0, max_injections=1))
         wrapper.add_injector(injector, tools=["search"])
 
         wrapped_tools = wrapper.get_wrapped_tools()
@@ -176,9 +173,9 @@ class TestLangChainE2EWorkflow:
 
     def test_agent_workflow_with_delays(self):
         """Test agent workflow with artificial delays."""
-        from agentchaos.injectors import DelayInjector
-        from agentchaos.injectors.delay import DelayConfig
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         def fast_tool(x: str) -> str:
             return f"fast: {x}"
@@ -189,9 +186,7 @@ class TestLangChainE2EWorkflow:
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
 
         # Add delay injector
-        injector = DelayInjector(
-            DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10)
-        )
+        injector = DelayInjector(DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10))
         wrapper.add_injector(injector, tools=["fast_tool"])
 
         wrapped_tools = wrapper.get_wrapped_tools()
@@ -199,7 +194,7 @@ class TestLangChainE2EWorkflow:
 
     def test_agent_workflow_with_experiment_tracking(self):
         """Test agent workflow within an experiment context."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -214,7 +209,7 @@ class TestLangChainE2EWorkflow:
 
     def test_multi_tool_agent_workflow(self):
         """Test agent with multiple tools."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         def search_web(query: str) -> dict:
             return {"source": "web", "query": query}
@@ -243,7 +238,7 @@ class TestLangChainE2EWorkflow:
 
     def test_chaos_level_configuration(self):
         """Test configuring different chaos levels."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent)
@@ -258,7 +253,7 @@ class TestLangChainE2EWorkflow:
 
     def test_metrics_collection_e2e(self):
         """Test comprehensive metrics collection during workflow."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         def tracked_tool(x: str) -> str:
             return x
@@ -277,7 +272,7 @@ class TestLangChainE2EWorkflow:
 
     def test_reset_workflow_state(self):
         """Test resetting workflow state between experiments."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -301,7 +296,7 @@ class TestLangChainE2EWorkflow:
 
     def test_streaming_workflow(self):
         """Test streaming response workflow."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -311,7 +306,7 @@ class TestLangChainE2EWorkflow:
 
     def test_batch_workflow(self):
         """Test batch invocation workflow."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -328,7 +323,7 @@ class TestLangChainChainE2E:
 
     def test_simple_chain_workflow(self):
         """Test simple chain workflow."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         def transform(x):
             return {"result": f"transformed: {x.get('input', '')}"}
@@ -341,7 +336,7 @@ class TestLangChainChainE2E:
 
     def test_chain_streaming(self):
         """Test chain streaming."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         chain = MockChain()
         wrapper = LangChainChainWrapper(chain, chaos_level=0.0)
@@ -351,7 +346,7 @@ class TestLangChainChainE2E:
 
     def test_chain_batch(self):
         """Test chain batch."""
-        from agentchaos.wrappers.langchain import LangChainChainWrapper
+        from balaganagent.wrappers.langchain import LangChainChainWrapper
 
         chain = MockChain()
         wrapper = LangChainChainWrapper(chain, chaos_level=0.0)
@@ -366,7 +361,7 @@ class TestLangChainAsyncE2E:
     @pytest.mark.asyncio
     async def test_async_agent_workflow(self):
         """Test async agent workflow."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -377,7 +372,7 @@ class TestLangChainAsyncE2E:
     @pytest.mark.asyncio
     async def test_async_streaming(self):
         """Test async streaming."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -391,7 +386,7 @@ class TestLangChainAsyncE2E:
     @pytest.mark.asyncio
     async def test_async_batch(self):
         """Test async batch."""
-        from agentchaos.wrappers.langchain import LangChainAgentWrapper
+        from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
         agent = MockAgentExecutor(tools=[])
         wrapper = LangChainAgentWrapper(agent, chaos_level=0.0)
@@ -405,7 +400,7 @@ class TestLangChainCallbackE2E:
 
     def test_callback_handler_workflow(self):
         """Test callback handler in workflow."""
-        from agentchaos.wrappers.langchain import ChaosCallbackHandler
+        from balaganagent.wrappers.langchain import ChaosCallbackHandler
 
         handler = ChaosCallbackHandler(chaos_level=0.0)
 
@@ -427,7 +422,7 @@ class TestLangChainCallbackE2E:
 
     def test_callback_reset(self):
         """Test callback handler reset."""
-        from agentchaos.wrappers.langchain import ChaosCallbackHandler
+        from balaganagent.wrappers.langchain import ChaosCallbackHandler
 
         handler = ChaosCallbackHandler(chaos_level=0.0)
         handler.on_llm_start({}, [])
@@ -447,16 +442,14 @@ class TestLangChainErrorHandling:
 
     def test_tool_proxy_exhausts_retries(self):
         """Test behavior when tool exhausts all retries."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         def always_fails(*args):
             raise RuntimeError("Permanent failure")
 
         tool = MockTool("failing", always_fails)
 
-        proxy = LangChainToolProxy(
-            tool, chaos_level=0.0, max_retries=2, retry_delay=0.01
-        )
+        proxy = LangChainToolProxy(tool, chaos_level=0.0, max_retries=2, retry_delay=0.01)
 
         with pytest.raises(RuntimeError, match="Permanent failure"):
             proxy()
@@ -467,7 +460,7 @@ class TestLangChainErrorHandling:
 
     def test_tool_proxy_recovers_from_transient_failure(self):
         """Test tool proxy recovers from transient failures."""
-        from agentchaos.wrappers.langchain import LangChainToolProxy
+        from balaganagent.wrappers.langchain import LangChainToolProxy
 
         call_count = 0
 
@@ -479,9 +472,7 @@ class TestLangChainErrorHandling:
             return "success"
 
         tool = MockTool("flaky", flaky_func)
-        proxy = LangChainToolProxy(
-            tool, chaos_level=0.0, max_retries=3, retry_delay=0.01
-        )
+        proxy = LangChainToolProxy(tool, chaos_level=0.0, max_retries=3, retry_delay=0.01)
 
         result = proxy()
         assert result == "success"

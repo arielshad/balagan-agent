@@ -105,7 +105,9 @@ class RecoveryQualityAnalyzer:
         )
         factors["timeliness"] = timeliness
         if timeliness < 0.5:
-            notes.append(f"Recovery took {actual_latency_ms/baseline_latency_ms:.1f}x longer than normal")
+            notes.append(
+                f"Recovery took {actual_latency_ms/baseline_latency_ms:.1f}x longer than normal"
+            )
 
         # 4. Resource efficiency - how many retries?
         resource_efficiency = self._assess_resource_efficiency(retries, max_retries)
@@ -120,10 +122,7 @@ class RecoveryQualityAnalyzer:
             notes.append("Some state inconsistency detected")
 
         # Calculate weighted score
-        score = sum(
-            factors[factor] * weight
-            for factor, weight in self.weights.items()
-        )
+        score = sum(factors[factor] * weight for factor, weight in self.weights.items())
 
         # Determine quality level
         quality = self._score_to_quality(score)
@@ -157,10 +156,7 @@ class RecoveryQualityAnalyzer:
             if not expected:
                 return 1.0 if not actual else 0.5
             matching_keys = set(expected.keys()) & set(actual.keys())
-            matching_values = sum(
-                1 for k in matching_keys
-                if expected.get(k) == actual.get(k)
-            )
+            matching_values = sum(1 for k in matching_keys if expected.get(k) == actual.get(k))
             return matching_values / len(expected)
 
         if isinstance(expected, (list, tuple)) and isinstance(actual, (list, tuple)):
@@ -314,8 +310,7 @@ class RecoveryQualityAnalyzer:
             "max_score": max(scores),
             "quality_distribution": quality_counts,
             "factor_averages": {
-                factor: statistics.mean(values)
-                for factor, values in factor_averages.items()
+                factor: statistics.mean(values) for factor, values in factor_averages.items()
             },
             "assessments_by_fault_type": self._group_by_fault_type(),
         }
@@ -335,8 +330,7 @@ class RecoveryQualityAnalyzer:
                 "count": len(assessments),
                 "average_score": statistics.mean([a.score for a in assessments]),
                 "quality_distribution": {
-                    q.value: sum(1 for a in assessments if a.quality == q)
-                    for q in RecoveryQuality
+                    q.value: sum(1 for a in assessments if a.quality == q) for q in RecoveryQuality
                 },
             }
             for fault_type, assessments in by_type.items()

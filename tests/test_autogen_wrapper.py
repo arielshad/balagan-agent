@@ -8,7 +8,7 @@ class TestAutoGenWrapper:
 
     def test_wrapper_creation(self):
         """Test wrapper creation with mock AutoGen components."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         # Create mock assistant agent
         mock_assistant = MagicMock()
@@ -20,7 +20,7 @@ class TestAutoGenWrapper:
 
     def test_wrapper_with_user_proxy(self):
         """Test wrapper with assistant and user proxy agents."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_assistant = MagicMock()
         mock_assistant.name = "assistant"
@@ -34,7 +34,7 @@ class TestAutoGenWrapper:
 
     def test_wrapper_with_chaos_level(self):
         """Test wrapper configured with chaos level."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "test_agent"
@@ -44,7 +44,7 @@ class TestAutoGenWrapper:
 
     def test_wrap_function_map(self):
         """Test that function_map functions are wrapped."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         # Create mock agent with function_map
         def search_func(query: str) -> str:
@@ -68,7 +68,7 @@ class TestAutoGenWrapper:
 
     def test_initiate_chat(self):
         """Test initiating a chat with chaos injection."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_assistant = MagicMock()
         mock_assistant.name = "assistant"
@@ -85,7 +85,7 @@ class TestAutoGenWrapper:
 
     def test_initiate_chat_with_config(self):
         """Test initiate_chat with additional config."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_assistant = MagicMock()
         mock_assistant.name = "assistant"
@@ -108,7 +108,7 @@ class TestAutoGenWrapper:
 
     def test_generate_reply(self):
         """Test generate_reply through wrapper."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "assistant"
@@ -124,7 +124,7 @@ class TestAutoGenWrapper:
 
     def test_get_metrics(self):
         """Test metrics collection."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "assistant"
@@ -141,9 +141,9 @@ class TestAutoGenWrapper:
 
     def test_chaos_injection_on_functions(self):
         """Test chaos injection on function_map functions."""
-        from agentchaos.injectors import ToolFailureInjector
-        from agentchaos.injectors.tool_failure import ToolFailureConfig
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.injectors import ToolFailureInjector
+        from balaganagent.injectors.tool_failure import ToolFailureConfig
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         def my_function(x: int) -> int:
             return x * 2
@@ -161,7 +161,7 @@ class TestAutoGenWrapper:
 
     def test_reset_wrapper(self):
         """Test wrapper state reset."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "assistant"
@@ -180,7 +180,7 @@ class TestAutoGenWrapper:
 
     def test_experiment_context(self):
         """Test running agent within an experiment context."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "assistant"
@@ -198,7 +198,7 @@ class TestAutoGenWrapper:
 
     def test_group_chat_support(self):
         """Test wrapper with group chat configuration."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent1 = MagicMock()
         mock_agent1.name = "agent1"
@@ -216,7 +216,7 @@ class TestAutoGenWrapper:
 
     def test_configure_chaos_all_options(self):
         """Test configuring chaos with all options."""
-        from agentchaos.wrappers.autogen import AutoGenWrapper
+        from balaganagent.wrappers.autogen import AutoGenWrapper
 
         mock_agent = MagicMock()
         mock_agent.name = "assistant"
@@ -240,7 +240,7 @@ class TestAutoGenFunctionProxy:
 
     def test_function_proxy_creation(self):
         """Test function proxy is created correctly."""
-        from agentchaos.wrappers.autogen import AutoGenFunctionProxy
+        from balaganagent.wrappers.autogen import AutoGenFunctionProxy
 
         def my_func(x: int) -> int:
             return x * 2
@@ -250,7 +250,7 @@ class TestAutoGenFunctionProxy:
 
     def test_function_proxy_call(self):
         """Test function proxy calls the underlying function."""
-        from agentchaos.wrappers.autogen import AutoGenFunctionProxy
+        from balaganagent.wrappers.autogen import AutoGenFunctionProxy
 
         def add_numbers(a: int, b: int) -> int:
             return a + b
@@ -262,7 +262,7 @@ class TestAutoGenFunctionProxy:
 
     def test_function_proxy_records_history(self):
         """Test function proxy records call history."""
-        from agentchaos.wrappers.autogen import AutoGenFunctionProxy
+        from balaganagent.wrappers.autogen import AutoGenFunctionProxy
 
         def my_func(x: int) -> int:
             return x
@@ -277,7 +277,7 @@ class TestAutoGenFunctionProxy:
 
     def test_function_proxy_retry_on_failure(self):
         """Test function proxy retries on transient failures."""
-        from agentchaos.wrappers.autogen import AutoGenFunctionProxy
+        from balaganagent.wrappers.autogen import AutoGenFunctionProxy
 
         call_count = 0
 
@@ -302,7 +302,7 @@ class TestAutoGenMultiAgent:
 
     def test_wrap_multiple_agents(self):
         """Test wrapping multiple agents in a conversation."""
-        from agentchaos.wrappers.autogen import AutoGenMultiAgentWrapper
+        from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
 
         mock_agent1 = MagicMock()
         mock_agent1.name = "researcher"
@@ -315,9 +315,9 @@ class TestAutoGenMultiAgent:
         wrapper = AutoGenMultiAgentWrapper([mock_agent1, mock_agent2])
         assert len(wrapper.agents) == 2
 
-    def test_multi_agent_chaos_propagation(self):
+    def test_multi_balagan_agent_propagation(self):
         """Test chaos settings propagate to all agents."""
-        from agentchaos.wrappers.autogen import AutoGenMultiAgentWrapper
+        from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
 
         mock_agent1 = MagicMock()
         mock_agent1.name = "agent1"
@@ -336,7 +336,7 @@ class TestAutoGenMultiAgent:
 
     def test_multi_agent_metrics(self):
         """Test aggregated metrics from multiple agents."""
-        from agentchaos.wrappers.autogen import AutoGenMultiAgentWrapper
+        from balaganagent.wrappers.autogen import AutoGenMultiAgentWrapper
 
         mock_agent1 = MagicMock()
         mock_agent1.name = "agent1"

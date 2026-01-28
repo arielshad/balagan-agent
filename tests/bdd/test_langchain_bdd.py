@@ -143,7 +143,7 @@ def agent_with_tools(context, count, mock_langchain_tool, mock_agent_executor):
 @given("a wrapper for the agent")
 def wrapper_for_agent(context):
     """Create a wrapper for the agent."""
-    from agentchaos.wrappers.langchain import LangChainAgentWrapper
+    from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
     context["wrapper"] = LangChainAgentWrapper(context["agent"])
 
@@ -151,7 +151,7 @@ def wrapper_for_agent(context):
 @given(parsers.parse("a wrapper with chaos level {level:f}"))
 def wrapper_with_chaos(context, level):
     """Create a wrapper with specific chaos level."""
-    from agentchaos.wrappers.langchain import LangChainAgentWrapper
+    from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
     context["wrapper"] = LangChainAgentWrapper(context["agent"], chaos_level=level)
 
@@ -174,7 +174,7 @@ def flaky_tool(context):
 @given(parsers.parse("a LangChain tool proxy with max_retries {retries:d}"))
 def tool_proxy_with_retries(context, retries):
     """Create a tool proxy with specific retry count."""
-    from agentchaos.wrappers.langchain import LangChainToolProxy
+    from balaganagent.wrappers.langchain import LangChainToolProxy
 
     mock_tool = MagicMock()
     mock_tool.name = "flaky_tool"
@@ -197,7 +197,7 @@ def create_chain(context, mock_chain):
 @given(parsers.parse("a chain wrapper with chaos level {level:f}"))
 def chain_wrapper_with_chaos(context, level):
     """Create a chain wrapper."""
-    from agentchaos.wrappers.langchain import LangChainChainWrapper
+    from balaganagent.wrappers.langchain import LangChainChainWrapper
 
     context["chain_wrapper"] = LangChainChainWrapper(context["chain"], chaos_level=level)
 
@@ -206,7 +206,7 @@ def chain_wrapper_with_chaos(context, level):
 @when("I create a wrapper for the agent")
 def create_wrapper(context):
     """Create a wrapper for the agent."""
-    from agentchaos.wrappers.langchain import LangChainAgentWrapper
+    from balaganagent.wrappers.langchain import LangChainAgentWrapper
 
     context["wrapper"] = LangChainAgentWrapper(context["agent"])
 
@@ -254,8 +254,8 @@ def reset_wrapper(context):
 @when(parsers.parse('I add a failure injector to the "{tool_name}" tool only'))
 def add_injector_to_tool(context, tool_name):
     """Add a failure injector to a specific tool."""
-    from agentchaos.injectors import ToolFailureInjector
-    from agentchaos.injectors.tool_failure import ToolFailureConfig
+    from balaganagent.injectors import ToolFailureInjector
+    from balaganagent.injectors.tool_failure import ToolFailureConfig
 
     injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
     context["wrapper"].add_injector(injector, tools=[tool_name])

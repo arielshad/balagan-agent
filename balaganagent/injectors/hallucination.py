@@ -30,33 +30,58 @@ class HallucinationConfig(InjectorConfig):
     preserve_structure: bool = True  # Keep data structure, just corrupt values
 
     # Templates for different hallucination types
-    fabricated_templates: list[str] = field(default_factory=lambda: [
-        "According to internal documentation, {claim}",
-        "The system reports that {claim}",
-        "Based on the data, {claim}",
-    ])
+    fabricated_templates: list[str] = field(
+        default_factory=lambda: [
+            "According to internal documentation, {claim}",
+            "The system reports that {claim}",
+            "Based on the data, {claim}",
+        ]
+    )
 
-    contradictory_templates: list[str] = field(default_factory=lambda: [
-        "However, {contradiction}",
-        "Note that {contradiction}",
-        "Actually, {contradiction}",
-    ])
+    contradictory_templates: list[str] = field(
+        default_factory=lambda: [
+            "However, {contradiction}",
+            "Note that {contradiction}",
+            "Actually, {contradiction}",
+        ]
+    )
 
     # Fake data pools
-    fake_names: list[str] = field(default_factory=lambda: [
-        "John Smith", "Jane Doe", "Alex Johnson", "Sam Wilson",
-        "Chris Lee", "Morgan Chen", "Taylor Kim", "Jordan Park",
-    ])
+    fake_names: list[str] = field(
+        default_factory=lambda: [
+            "John Smith",
+            "Jane Doe",
+            "Alex Johnson",
+            "Sam Wilson",
+            "Chris Lee",
+            "Morgan Chen",
+            "Taylor Kim",
+            "Jordan Park",
+        ]
+    )
 
-    fake_numbers: list[int] = field(default_factory=lambda: [
-        42, 1337, 9999, 404, 500, 123, 777, 888, 999, 100,
-    ])
+    fake_numbers: list[int] = field(
+        default_factory=lambda: [
+            42,
+            1337,
+            9999,
+            404,
+            500,
+            123,
+            777,
+            888,
+            999,
+            100,
+        ]
+    )
 
-    fake_urls: list[str] = field(default_factory=lambda: [
-        "https://example.com/fake-resource",
-        "https://docs.example.org/nonexistent",
-        "https://api.fake-service.io/v2/data",
-    ])
+    fake_urls: list[str] = field(
+        default_factory=lambda: [
+            "https://example.com/fake-resource",
+            "https://docs.example.org/nonexistent",
+            "https://api.fake-service.io/v2/data",
+        ]
+    )
 
 
 class HallucinationInjector(BaseInjector):
@@ -165,11 +190,13 @@ class HallucinationInjector(BaseInjector):
                 "source": self._rng.choice(self.config.fake_urls),
                 "confidence": round(self._rng.uniform(0.8, 0.99), 2),
                 "verified": True,  # Falsely claims verification
-                "additional_info": self._rng.choice([
-                    "Data validated by internal systems",
-                    "Cross-referenced with external sources",
-                    "Confirmed by automated checks",
-                ]),
+                "additional_info": self._rng.choice(
+                    [
+                        "Data validated by internal systems",
+                        "Cross-referenced with external sources",
+                        "Confirmed by automated checks",
+                    ]
+                ),
             }
             return data
         return {

@@ -25,9 +25,7 @@ class FailureMode(Enum):
 class ToolFailureConfig(InjectorConfig):
     """Configuration for tool failure injection."""
 
-    failure_modes: list[FailureMode] = field(
-        default_factory=lambda: list(FailureMode)
-    )
+    failure_modes: list[FailureMode] = field(default_factory=lambda: list(FailureMode))
     failure_mode_weights: Optional[dict[FailureMode, float]] = None
     custom_exceptions: dict[str, type[Exception]] = field(default_factory=dict)
     error_messages: dict[FailureMode, list[str]] = field(default_factory=dict)

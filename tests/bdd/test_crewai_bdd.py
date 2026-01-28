@@ -10,34 +10,40 @@ from pytest_bdd import given, parsers, scenario, then, when
 @pytest.fixture
 def mock_crewai_tool():
     """Create a mock CrewAI tool."""
+
     def _create(name: str, func=None):
         tool = MagicMock()
         tool.name = name
         tool.func = func or MagicMock(return_value="tool result")
         return tool
+
     return _create
 
 
 @pytest.fixture
 def mock_crewai_agent():
     """Create a mock CrewAI agent."""
+
     def _create(role: str, tools: list = None):
         agent = MagicMock()
         agent.role = role
         agent.tools = tools or []
         return agent
+
     return _create
 
 
 @pytest.fixture
 def mock_crew():
     """Create a mock CrewAI crew."""
+
     def _create(agents: list, tasks: list = None):
         crew = MagicMock()
         crew.agents = agents
         crew.tasks = tasks or []
         crew.kickoff = MagicMock(return_value={"status": "completed"})
         return crew
+
     return _create
 
 
@@ -112,14 +118,16 @@ def crew_with_one_agent(context, mock_crewai_tool, mock_crewai_agent, mock_crew)
 @given("a wrapper for the crew")
 def wrapper_for_crew(context):
     """Create a wrapper for the crew."""
-    from agentchaos.wrappers.crewai import CrewAIWrapper
+    from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"])
 
 
 @given(parsers.parse("a wrapper with chaos level {level:f}"))
 def wrapper_with_chaos(context, level):
     """Create a wrapper with specific chaos level."""
-    from agentchaos.wrappers.crewai import CrewAIWrapper
+    from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"], chaos_level=level)
 
 
@@ -151,7 +159,7 @@ def flaky_tool(context):
 @given(parsers.parse("a CrewAI tool proxy with max_retries {retries:d}"))
 def tool_proxy_with_retries(context, retries):
     """Create a tool proxy with specific retry count."""
-    from agentchaos.wrappers.crewai import CrewAIToolProxy
+    from balaganagent.wrappers.crewai import CrewAIToolProxy
 
     mock_tool = MagicMock()
     mock_tool.name = "flaky_tool"
@@ -169,7 +177,8 @@ def tool_proxy_with_retries(context, retries):
 @when("I create a wrapper for the crew")
 def create_wrapper(context):
     """Create a wrapper for the crew."""
-    from agentchaos.wrappers.crewai import CrewAIWrapper
+    from balaganagent.wrappers.crewai import CrewAIWrapper
+
     context["wrapper"] = CrewAIWrapper(context["crew"])
 
 
@@ -216,8 +225,8 @@ def reset_wrapper(context):
 @when(parsers.parse('I add a failure injector to the "{tool_name}" tool only'))
 def add_injector_to_tool(context, tool_name):
     """Add a failure injector to a specific tool."""
-    from agentchaos.injectors import ToolFailureInjector
-    from agentchaos.injectors.tool_failure import ToolFailureConfig
+    from balaganagent.injectors import ToolFailureInjector
+    from balaganagent.injectors.tool_failure import ToolFailureConfig
 
     injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
     context["wrapper"].add_injector(injector, tools=[tool_name])

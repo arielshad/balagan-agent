@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Basic usage example for AgentChaos.
+Basic usage example for BalaganAgent.
 
 This example demonstrates how to:
 1. Create a simple agent with tools
@@ -9,9 +9,9 @@ This example demonstrates how to:
 4. Generate reliability reports
 """
 
-from agentchaos import ChaosEngine, AgentWrapper, ExperimentRunner
-from agentchaos.runner import scenario
-from agentchaos.reporting import ReportGenerator
+from balaganagent import AgentWrapper, ChaosEngine, ExperimentRunner
+from balaganagent.reporting import ReportGenerator
+from balaganagent.runner import scenario
 
 
 # Define a simple agent with tools
@@ -165,7 +165,7 @@ def example_chaos_engine():
 
     # Get results
     result = engine.get_experiment_results()[-1]
-    print(f"\nExperiment Results:")
+    print("\nExperiment Results:")
     print(f"  Total Operations: {result.total_operations}")
     print(f"  Successful: {result.successful_operations}")
     print(f"  Failed: {result.failed_operations}")
@@ -215,7 +215,7 @@ def example_report_generation():
 def main():
     """Run all examples."""
     print("\n" + "#" * 60)
-    print("#  AGENTCHAOS EXAMPLES")
+    print("#  BALAGANAGENT EXAMPLES")
     print("#" * 60)
 
     example_basic_wrapping()

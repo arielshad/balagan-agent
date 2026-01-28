@@ -6,7 +6,6 @@ This example uses the REAL CrewAI SDK (Agent, Task, Crew, @tool)
 with a fake OPENAI_API_KEY so no real API calls are made.
 """
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest

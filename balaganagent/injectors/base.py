@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 class FaultType(Enum):
     """Types of faults that can be injected."""
+
     TOOL_FAILURE = "tool_failure"
     DELAY = "delay"
     HALLUCINATION = "hallucination"
@@ -82,8 +83,10 @@ class BaseInjector(ABC):
             return False
 
         # Check max injections limit
-        if (self.config.max_injections is not None and
-            self._injection_count >= self.config.max_injections):
+        if (
+            self.config.max_injections is not None
+            and self._injection_count >= self.config.max_injections
+        ):
             return False
 
         # Check cooldown
@@ -147,10 +150,12 @@ class CompositeInjector(BaseInjector):
             if injector.should_inject(target):
                 result, details = injector.inject(target, context)
                 results.append(result)
-                combined_details["injectors"].append({
-                    "type": injector.fault_type.value,
-                    "details": details,
-                })
+                combined_details["injectors"].append(
+                    {
+                        "type": injector.fault_type.value,
+                        "details": details,
+                    }
+                )
 
         return results[-1] if results else None, combined_details
 

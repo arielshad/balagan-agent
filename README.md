@@ -1,14 +1,14 @@
-# AgentChaos
+# BalaganAgent
 
 **Chaos Engineering for AI Agents**
 
 Everyone demos agents. Nobody stress-tests them.
 
-AgentChaos is a reliability testing framework that stress-tests AI agents through controlled fault injection—because your agent will fail in production, and you should know how it handles it.
+BalaganAgent is a reliability testing framework that stress-tests AI agents through controlled fault injection—because your agent will fail in production, and you should know how it handles it.
 
-## Why AgentChaos?
+## Why BalaganAgent?
 
-AI agents are entering production environments, but there's zero reliability discipline. AgentChaos brings the battle-tested principles of chaos engineering (think Chaos Monkey, Gremlin) to the world of AI agents.
+AI agents are entering production environments, but there's zero reliability discipline. BalaganAgent brings the battle-tested principles of chaos engineering (think Chaos Monkey, Gremlin) to the world of AI agents.
 
 **The Problem:**
 - Agents fail silently in production
@@ -48,7 +48,7 @@ AI agents are entering production environments, but there's zero reliability dis
 ### Installation
 
 ```bash
-pip install agentchaos
+pip install balaganagent
 ```
 
 ### CrewAI Integration
@@ -57,7 +57,7 @@ pip install agentchaos
 
 Quick example:
 ```python
-from agentchaos.wrappers.crewai import CrewAIWrapper
+from balaganagent.wrappers.crewai import CrewAIWrapper
 
 # Your existing CrewAI setup
 crew = Crew(agents=[agent], tasks=[task])
@@ -77,7 +77,7 @@ print(f"Success rate: {metrics['aggregate']['operations']['success_rate']:.1%}")
 ### Basic Usage
 
 ```python
-from agentchaos import ChaosEngine, AgentWrapper
+from balaganagent import ChaosEngine, AgentWrapper
 
 # Your agent with tools
 class MyAgent:
@@ -99,8 +99,8 @@ result = wrapper.call_tool("search", "test query")
 ### Run an Experiment
 
 ```python
-from agentchaos import ChaosEngine
-from agentchaos.runner import scenario, ExperimentRunner
+from balaganagent import ChaosEngine
+from balaganagent.runner import scenario, ExperimentRunner
 
 # Define a test scenario
 test = (
@@ -126,16 +126,16 @@ print(f"MTTR: {result.mttr_stats['mttr_seconds']:.2f}s")
 
 ```bash
 # Run a demo
-agentchaos demo --chaos-level 0.5
+balaganagent demo --chaos-level 0.5
 
 # Initialize a new project
-agentchaos init my-chaos-tests
+balaganagent init my-chaos-tests
 
 # Run a scenario file
-agentchaos run scenarios/search_test.json --chaos-level 0.75
+balaganagent run scenarios/search_test.json --chaos-level 0.75
 
 # Run stress tests
-agentchaos stress scenarios/critical_path.json --iterations 100
+balaganagent stress scenarios/critical_path.json --iterations 100
 ```
 
 ## Chaos Levels
@@ -157,8 +157,8 @@ The `chaos_level` parameter controls fault injection probability:
 Simulates various tool failure modes:
 
 ```python
-from agentchaos.injectors import ToolFailureInjector
-from agentchaos.injectors.tool_failure import ToolFailureConfig, FailureMode
+from balaganagent.injectors import ToolFailureInjector
+from balaganagent.injectors.tool_failure import ToolFailureConfig, FailureMode
 
 injector = ToolFailureInjector(ToolFailureConfig(
     probability=0.1,
@@ -175,8 +175,8 @@ injector = ToolFailureInjector(ToolFailureConfig(
 Simulates network latency patterns:
 
 ```python
-from agentchaos.injectors import DelayInjector
-from agentchaos.injectors.delay import DelayConfig, DelayPattern, LatencySimulator
+from balaganagent.injectors import DelayInjector
+from balaganagent.injectors.delay import DelayConfig, DelayPattern, LatencySimulator
 
 # Use presets
 injector = LatencySimulator.create("poor")  # High latency, high jitter
@@ -196,8 +196,8 @@ injector = DelayInjector(DelayConfig(
 Corrupts data to test agent's ability to detect bad information:
 
 ```python
-from agentchaos.injectors import HallucinationInjector
-from agentchaos.injectors.hallucination import HallucinationConfig, HallucinationType
+from balaganagent.injectors import HallucinationInjector
+from balaganagent.injectors.hallucination import HallucinationConfig, HallucinationType
 
 injector = HallucinationInjector(HallucinationConfig(
     probability=0.05,
@@ -215,8 +215,8 @@ injector = HallucinationInjector(HallucinationConfig(
 Tests behavior when resources run out:
 
 ```python
-from agentchaos.injectors import BudgetExhaustionInjector
-from agentchaos.injectors.budget import BudgetExhaustionConfig
+from balaganagent.injectors import BudgetExhaustionInjector
+from balaganagent.injectors.budget import BudgetExhaustionConfig
 
 injector = BudgetExhaustionInjector(BudgetExhaustionConfig(
     token_limit=10000,
@@ -231,7 +231,7 @@ injector = BudgetExhaustionInjector(BudgetExhaustionConfig(
 ### MTTR Calculator
 
 ```python
-from agentchaos.metrics import MTTRCalculator
+from balaganagent.metrics import MTTRCalculator
 
 calc = MTTRCalculator()
 
@@ -248,7 +248,7 @@ print(f"Recovery Rate: {stats['recovery_rate']:.1%}")
 ### Reliability Scorer
 
 ```python
-from agentchaos.metrics import ReliabilityScorer
+from balaganagent.metrics import ReliabilityScorer
 
 scorer = ReliabilityScorer(slos={
     "availability": 0.99,
@@ -314,7 +314,7 @@ for level, data in results["levels"].items():
 Generate reports in multiple formats:
 
 ```python
-from agentchaos.reporting import ReportGenerator
+from balaganagent.reporting import ReportGenerator
 
 gen = ReportGenerator()
 report = gen.generate_from_results(results, metrics)
@@ -332,7 +332,7 @@ gen.save(report, "report.html", format="html")
 
 ```
 ============================================================
-  AGENTCHAOS EXPERIMENT REPORT
+  BALAGANAGENT EXPERIMENT REPORT
 ============================================================
 
   Generated: 2024-01-15T10:30:00
@@ -365,7 +365,7 @@ RECOMMENDATIONS
 ## Project Structure
 
 ```
-agentchaos/
+balaganagent/
 ├── __init__.py          # Main exports
 ├── engine.py            # Chaos engine core
 ├── experiment.py        # Experiment definitions
