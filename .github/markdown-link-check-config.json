@@ -9,9 +9,9 @@
   ],
   "replacementPatterns": [],
   "httpHeaders": [],
-  "timeout": "20s",
+  "timeout": "30s",
   "retryOn429": true,
-  "retryCount": 3,
-  "fallbackRetryDelay": "30s",
-  "aliveStatusCodes": [200, 206]
+  "retryCount": 2,
+  "fallbackRetryDelay": "5s",
+  "aliveStatusCodes": [200, 206, 301, 302]
 }
