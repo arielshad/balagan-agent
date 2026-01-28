@@ -4,6 +4,13 @@ Tests the agent's resilience under chaos injection: tool failures,
 delays, hallucinations, and increasing chaos levels.
 """
 
+import pytest
+
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
+
 from balaganagent.wrappers.crewai import CrewAIWrapper
 
 # ---------------------------------------------------------------------------

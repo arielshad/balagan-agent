@@ -2,6 +2,13 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
+
 
 class TestCrewAIWrapper:
     """Tests for CrewAI wrapper integration."""

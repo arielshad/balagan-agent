@@ -6,6 +6,13 @@ using mocks to avoid the need for actual API tokens.
 
 from unittest.mock import MagicMock
 
+import pytest
+
+try:
+    import crewai  # noqa: F401
+except ImportError:
+    pytest.skip("crewai not installed", allow_module_level=True)
+
 
 class MockLLMResponse:
     """Mock LLM response for testing."""
