@@ -1,0 +1,33 @@
+{
+  "name": "basic-search-test",
+  "description": "Test basic search functionality under chaos conditions",
+  "operations": [
+    {
+      "tool": "search",
+      "args": ["artificial intelligence"],
+      "expected": {"type": "dict", "has_key": "results"}
+    },
+    {
+      "tool": "search",
+      "args": ["machine learning"],
+      "expected": {"type": "dict", "has_key": "results"}
+    },
+    {
+      "tool": "search",
+      "args": ["deep learning"],
+      "expected": {"type": "dict", "has_key": "results"}
+    }
+  ],
+  "chaos_config": {
+    "chaos_level": 0.5,
+    "enable_tool_failures": true,
+    "enable_delays": true,
+    "enable_hallucinations": false,
+    "enable_context_corruption": false,
+    "enable_budget_exhaustion": true
+  },
+  "expected_results": {
+    "min_success_rate": 0.7,
+    "max_latency_p99_ms": 5000
+  }
+}
