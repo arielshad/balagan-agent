@@ -4,7 +4,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
 [![Python versions](https://img.shields.io/pypi/pyversions/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/arielshad/balagan-agent/workflows/Tests/badge.svg)](https://github.com/arielshad/balagan-agent/actions)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Downloads](https://img.shields.io/pypi/dm/balagan-agent.svg)](https://pypi.org/project/balagan-agent/)
@@ -550,7 +550,7 @@ Built with inspiration from:
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details
+Apache License 2.0 - see [LICENSE](LICENSE) for details
 
 ## Star History
 
