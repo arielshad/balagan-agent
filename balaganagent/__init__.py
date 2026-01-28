@@ -11,7 +11,7 @@ A reliability testing framework that stress-tests AI agents through:
 Outputs reliability metrics including MTTR, recovery quality, and reliability scores.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from .engine import ChaosEngine
 from .experiment import Experiment, ExperimentConfig
