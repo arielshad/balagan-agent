@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "AgentChaos Contributors" }
+    { name = "Ariel Shadkhan" },
 ]
 keywords = [
     "ai",
@@ -78,10 +78,10 @@ all-wrappers = [
 agentchaos = "agentchaos.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/agentchaos/agentchaos"
-Documentation = "https://github.com/agentchaos/agentchaos#readme"
-Repository = "https://github.com/agentchaos/agentchaos"
-Issues = "https://github.com/agentchaos/agentchaos/issues"
+Homepage = "https://github.com/arielshad/agent-chaos"
+Documentation = "https://github.com/arielshad/agent-chaos#readme"
+Repository = "https://github.com/arielshad/agent-chaos"
+Issues = "https://github.com/arielshad/agent-chaos/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["agentchaos"]
