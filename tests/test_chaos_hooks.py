@@ -22,7 +22,6 @@ from balaganagent.wrappers.claude_sdk_client import ChaosClaudeSDKClient
 from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
 from research_agent.agent import build_agents, build_options
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
