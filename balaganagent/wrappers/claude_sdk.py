@@ -39,7 +39,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from ..experiment import Experiment, ExperimentConfig, ExperimentResult
-from ..injectors.base import FaultType
 from ..injectors import (
     BaseInjector,
     BudgetExhaustionInjector,
@@ -48,6 +47,7 @@ from ..injectors import (
     HallucinationInjector,
     ToolFailureInjector,
 )
+from ..injectors.base import FaultType
 from ..metrics import MetricsCollector, MTTRCalculator
 
 

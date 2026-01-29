@@ -6,21 +6,19 @@ injection works correctly on the actual tools the agent uses.
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
-
-import pytest
 
 # Make research_agent importable
 _DEMOS_DIR = Path(__file__).resolve().parent.parent / "claude-agent-sdk-demos"
 if str(_DEMOS_DIR) not in sys.path:
     sys.path.insert(0, str(_DEMOS_DIR))
 
-from balaganagent.hooks.chaos_hooks import ChaosHookEngine
-from balaganagent.wrappers.claude_sdk_client import ChaosClaudeSDKClient
-from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
-from research_agent.agent import build_agents, build_options
+from research_agent.agent import build_agents, build_options  # noqa: E402
+
+from balaganagent.hooks.chaos_hooks import ChaosHookEngine  # noqa: E402
+from balaganagent.wrappers.claude_sdk_client import ChaosClaudeSDKClient  # noqa: E402
+from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Helpers

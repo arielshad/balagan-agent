@@ -9,10 +9,8 @@ Test coverage includes:
 
 from __future__ import annotations
 
-import asyncio
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -118,7 +116,7 @@ class TestResearchTools:
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = save({"content": "Test content"})
+                save({"content": "Test content"})
 
                 # Check that some file was created
                 files = os.listdir(".")
@@ -271,7 +269,7 @@ class TestResearchWorkflow:
                 verbose=False,
             )
 
-            result = await run_research_agent(config)
+            await run_research_agent(config)
 
             # Check that a file was created
             files = os.listdir(tmpdir)
@@ -490,7 +488,7 @@ class TestEdgeCases:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = os.path.join(tmpdir, "nested", "dirs", "report.md")
-            result = save({"content": "Test", "filename": filepath})
+            save({"content": "Test", "filename": filepath})
 
             assert os.path.exists(filepath)
             assert os.path.isfile(filepath)
