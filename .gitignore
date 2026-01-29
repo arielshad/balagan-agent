@@ -58,3 +58,9 @@ dmypy.json
 # Output files
 *.log
 crew_output_*.log
+
+logs/
+
+research_report_*.md
+
+reports/
