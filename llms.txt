@@ -1,0 +1,167 @@
+# BalaganAgent
+
+> Chaos Engineering for AI Agents. Reliability testing framework that stress-tests AI agents through controlled fault injection.
+
+## Overview
+
+BalaganAgent brings battle-tested chaos engineering principles (Chaos Monkey, Gremlin) to AI agents. It injects controlled failures into agent tool calls, measures recovery, and scores reliability using SRE-grade metrics.
+
+- **Package**: `balagan-agent` on PyPI
+- **Version**: 0.3.1
+- **License**: Apache 2.0
+- **Python**: >= 3.10
+- **Repository**: https://github.com/arielshad/balagan-agent
+
+## Quick Start
+
+```bash
+pip install balagan-agent
+```
+
+```python
+from balaganagent import ChaosEngine, AgentWrapper
+
+wrapper = AgentWrapper(agent, chaos_level=0.5)
+wrapper.configure_chaos(enable_tool_failures=True)
+result = wrapper.run()
+metrics = wrapper.get_metrics()
+```
+
+## Supported Agent Frameworks
+
+- **CrewAI** (>= 0.28.0) — `balaganagent.wrappers.crewai.CrewAIWrapper`
+- **AutoGen** (>= 0.2.0) — `balaganagent.wrappers.autogen.AutoGenWrapper`
+- **LangChain** (>= 0.1.0) — `balaganagent.wrappers.langchain.LangChainAgentWrapper`
+- **Claude Agent SDK** (>= 0.1.0) — `balaganagent.wrappers.claude_sdk.ClaudeAgentSDKWrapper`
+
+## Architecture
+
+```
+Agent Framework → Framework Wrapper → Chaos Engine → Fault Injectors + Metrics Collectors
+```
+
+The wrapper intercepts tool calls, routes them through configured injectors, records metrics, and returns results (or injected failures) to the framework.
+
+## Core Modules
+
+### Engine (`balaganagent/engine.py`)
+Orchestrates chaos experiments. Manages injector lifecycle, experiment context, and result collection.
+
+### Wrapper (`balaganagent/wrapper.py`)
+Base agent wrapper. Intercepts tool calls, applies chaos injection, collects per-tool metrics.
+
+### Experiment (`balaganagent/experiment.py`)
+Experiment definitions, configuration dataclasses, and result tracking.
+
+### Runner (`balaganagent/runner.py`)
+Scenario-based experiment runner with multi-framework support and stress testing at escalating chaos levels.
+
+### Reporting (`balaganagent/reporting.py`)
+Report generation in JSON, Markdown, HTML, and terminal formats.
+
+### CLI (`balaganagent/cli.py`)
+Commands: `run`, `stress`, `demo`, `init`.
+
+## Fault Injectors (`balaganagent/injectors/`)
+
+All injectors inherit from `BaseInjector` with probability-based injection and target tool filtering.
+
+### Tool Failure (`injectors/tool_failure.py`)
+Simulates: exceptions, timeouts, empty responses, malformed data, partial failures, rate limiting (429), auth failures (401), not found (404), service unavailable (503).
+
+### Delay (`injectors/delay.py`)
+Injects latency: fixed, random jitter, spike patterns, degrading latency.
+
+### Hallucination (`injectors/hallucination.py`)
+Corrupts data: wrong values, fabricated data, contradictions, fake references.
+
+### Context Corruption (`injectors/context.py`)
+Corrupts context: truncation, reordering, noise injection, encoding issues.
+
+### Budget Exhaustion (`injectors/budget.py`)
+Simulates resource limits: token limits, cost caps, rate limiting, call quotas.
+
+## Metrics (`balaganagent/metrics/`)
+
+### Collector (`metrics/collector.py`)
+General metrics: operation counts, latency tracking, success rates.
+
+### MTTR (`metrics/mttr.py`)
+Mean Time To Recovery calculation with min/max/mean recovery times and recovery rate.
+
+### Recovery (`metrics/recovery.py`)
+Recovery quality analysis: did the agent recover correctly or just fail gracefully?
+
+### Reliability (`metrics/reliability.py`)
+SRE-grade reliability scoring from "5 nines" (99.999%) down to "1 nine" (90%). Includes availability calculation, error budget tracking, and SLO compliance.
+
+## Framework Wrappers (`balaganagent/wrappers/`)
+
+### CrewAI (`wrappers/crewai.py`)
+```python
+from balaganagent.wrappers.crewai import CrewAIWrapper
+wrapper = CrewAIWrapper(crew, chaos_level=0.5)
+wrapper.configure_chaos(enable_tool_failures=True)
+result = wrapper.kickoff()
+```
+
+### AutoGen (`wrappers/autogen.py`)
+```python
+from balaganagent.wrappers.autogen import AutoGenWrapper
+wrapper = AutoGenWrapper(user_proxy, agents, chaos_level=0.5)
+result = wrapper.initiate_chat(...)
+```
+
+### LangChain (`wrappers/langchain.py`)
+```python
+from balaganagent.wrappers.langchain import LangChainAgentWrapper
+wrapper = LangChainAgentWrapper(agent, chaos_level=0.5)
+result = wrapper.run(...)
+```
+
+### Claude Agent SDK (`wrappers/claude_sdk.py`)
+```python
+from balaganagent.wrappers.claude_sdk import ClaudeAgentSDKWrapper
+wrapper = ClaudeAgentSDKWrapper(tools=tools, chaos_level=0.5)
+tools = wrapper.get_wrapped_tools()
+server = wrapper.create_mcp_server(name="tools", version="1.0.0")
+```
+
+## Examples (`examples/`)
+
+- `basic_usage.py` — Core usage patterns: wrapping, scenarios, engine, reporting
+- `crewai_sdk_research_agent.py` — 2-agent research crew (deterministic, no LLM needed)
+- `crewai_gemini_research_agent.py` — Research crew powered by Google Gemini
+- `crewai_gemini_chaos_example.py` — 5 chaos scenarios with Gemini
+- `claude_sdk_agent.py` — Basic Claude Agent SDK integration
+- `claude_sdk_research_agent.py` — Multi-tool research agent with Claude SDK
+- `claude_sdk_research_chaos_example.py` — Chaos testing with Claude SDK
+- `balagan_research_agent_example.py` — Comprehensive multi-mode integration example
+- `stress_test.py` — Stress testing example
+
+## Configuration
+
+Chaos is configured via dataclass objects with:
+- `chaos_level` (0.0–1.0): Overall chaos intensity
+- `enable_tool_failures`, `enable_delays`, `enable_hallucinations`, etc.: Toggle specific injector types
+- `probability` (0.0–1.0): Per-injector injection probability
+- `target_tools` / `exclude_tools`: Filter which tools get chaos injected
+
+## Testing
+
+```bash
+pytest tests/                    # All tests
+pytest tests/test_engine.py      # Unit tests
+pytest tests/bdd/                # BDD tests
+pytest tests/e2e/                # End-to-end tests
+```
+
+## Optional Dependencies
+
+Install framework-specific extras:
+```bash
+pip install balagan-agent[crewai]
+pip install balagan-agent[autogen]
+pip install balagan-agent[langchain]
+pip install balagan-agent[dev]        # Development tools
+```
