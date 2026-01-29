@@ -104,39 +104,39 @@ class ChaosHookEngine:
         base_prob = 0.1 * chaos_level
 
         if enable_tool_failures:
-            cfg = ToolFailureConfig(probability=base_prob)
+            tf_cfg = ToolFailureConfig(probability=base_prob)
             if self._target_tools:
-                cfg.target_tools = list(self._target_tools)
-            cfg.exclude_tools = list(self._exclude_tools)
-            self._injectors.append(ToolFailureInjector(cfg))
+                tf_cfg.target_tools = list(self._target_tools)
+            tf_cfg.exclude_tools = list(self._exclude_tools)
+            self._injectors.append(ToolFailureInjector(tf_cfg))
 
         if enable_delays:
-            cfg = DelayConfig(probability=base_prob * 2)
+            dl_cfg = DelayConfig(probability=base_prob * 2)
             if self._target_tools:
-                cfg.target_tools = list(self._target_tools)
-            cfg.exclude_tools = list(self._exclude_tools)
-            self._injectors.append(DelayInjector(cfg))
+                dl_cfg.target_tools = list(self._target_tools)
+            dl_cfg.exclude_tools = list(self._exclude_tools)
+            self._injectors.append(DelayInjector(dl_cfg))
 
         if enable_hallucinations:
-            cfg = HallucinationConfig(probability=base_prob * 0.5)
+            hl_cfg = HallucinationConfig(probability=base_prob * 0.5)
             if self._target_tools:
-                cfg.target_tools = list(self._target_tools)
-            cfg.exclude_tools = list(self._exclude_tools)
-            self._injectors.append(HallucinationInjector(cfg))
+                hl_cfg.target_tools = list(self._target_tools)
+            hl_cfg.exclude_tools = list(self._exclude_tools)
+            self._injectors.append(HallucinationInjector(hl_cfg))
 
         if enable_context_corruption:
-            cfg = ContextCorruptionConfig(probability=base_prob * 0.3)
+            cc_cfg = ContextCorruptionConfig(probability=base_prob * 0.3)
             if self._target_tools:
-                cfg.target_tools = list(self._target_tools)
-            cfg.exclude_tools = list(self._exclude_tools)
-            self._injectors.append(ContextCorruptionInjector(cfg))
+                cc_cfg.target_tools = list(self._target_tools)
+            cc_cfg.exclude_tools = list(self._exclude_tools)
+            self._injectors.append(ContextCorruptionInjector(cc_cfg))
 
         if enable_budget_exhaustion:
-            cfg = BudgetExhaustionConfig(probability=base_prob)
+            be_cfg = BudgetExhaustionConfig(probability=base_prob)
             if self._target_tools:
-                cfg.target_tools = list(self._target_tools)
-            cfg.exclude_tools = list(self._exclude_tools)
-            self._injectors.append(BudgetExhaustionInjector(cfg))
+                be_cfg.target_tools = list(self._target_tools)
+            be_cfg.exclude_tools = list(self._exclude_tools)
+            self._injectors.append(BudgetExhaustionInjector(be_cfg))
 
     def add_injector(self, injector: BaseInjector):
         """Add a custom injector."""

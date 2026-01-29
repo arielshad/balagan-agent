@@ -343,7 +343,10 @@ class TestClaudeAgentSDKChaosExample:
         with wrapper.experiment("chaos-test"):
             wrapper.record_query()
             tools = wrapper.get_wrapped_tools()
-            tools["my_tool"]()
+            try:
+                tools["my_tool"]()
+            except Exception:
+                pass  # Tool may fail under chaos — that's expected
 
         results = wrapper.get_experiment_results()
         assert len(results) == 1
