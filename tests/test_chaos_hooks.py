@@ -1,11 +1,44 @@
-"""Tests for ChaosHookEngine and ChaosClaudeSDKClient."""
+"""Tests for ChaosHookEngine, ChaosClaudeSDKClient, and ClaudeSDKChaosIntegration.
+
+These tests use the real research agent definitions from
+``claude-agent-sdk-demos/research_agent/agent.py`` to verify that chaos
+injection works correctly on the actual tools the agent uses.
+"""
 
 import asyncio
+import os
+import sys
+from pathlib import Path
+
 import pytest
+
+# Make research_agent importable
+_DEMOS_DIR = Path(__file__).resolve().parent.parent / "claude-agent-sdk-demos"
+if str(_DEMOS_DIR) not in sys.path:
+    sys.path.insert(0, str(_DEMOS_DIR))
 
 from balaganagent.hooks.chaos_hooks import ChaosHookEngine
 from balaganagent.wrappers.claude_sdk_client import ChaosClaudeSDKClient
 from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
+from research_agent.agent import build_agents, build_options
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_agent_tool_names() -> list[str]:
+    """Extract the full set of tool names from the real research agent."""
+    agents = build_agents()
+    tools: set[str] = set()
+    for agent_def in agents.values():
+        tools.update(agent_def.tools)
+    return sorted(tools)
+
+
+def _run(coro):
+    return asyncio.get_event_loop().run_until_complete(coro)
 
 
 # ---------------------------------------------------------------------------
@@ -14,20 +47,20 @@ from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
 
 
 class TestChaosHookEngine:
-    """Tests for hook-based chaos injection."""
-
-    def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+    """Tests for hook-based chaos injection using real research agent tools."""
 
     def test_no_chaos_passes_through(self):
         engine = ChaosHookEngine(chaos_level=0.0)
         engine.configure_chaos(chaos_level=0.0)
 
-        hook_input = {"tool_name": "WebSearch", "tool_input": {"query": "test"}}
-        result = self._run(engine.pre_tool_use_hook(hook_input, "id1", None))
-        assert result["continue_"] is True
+        # Use the actual tools from the research agent
+        for tool_name in _get_agent_tool_names():
+            hook_input = {"tool_name": tool_name, "tool_input": {}}
+            result = _run(engine.pre_tool_use_hook(hook_input, f"id_{tool_name}", None))
+            assert result["continue_"] is True, f"{tool_name} should pass through at chaos=0"
 
-    def test_high_chaos_injects_failures(self):
+    def test_high_chaos_injects_failures_on_agent_tools(self):
+        """Verify that chaos injection actually blocks some research agent tools."""
         engine = ChaosHookEngine(chaos_level=2.0)
         engine.configure_chaos(
             chaos_level=2.0,
@@ -38,34 +71,26 @@ class TestChaosHookEngine:
             enable_budget_exhaustion=False,
         )
 
+        agent_tools = _get_agent_tool_names()
         blocked = 0
-        for i in range(50):
-            hook_input = {"tool_name": "WebSearch", "tool_input": {"query": f"q{i}"}}
-            result = self._run(engine.pre_tool_use_hook(hook_input, f"id_{i}", None))
-            if not result.get("continue_", True):
-                blocked += 1
+        total = 0
 
-        # With chaos_level=2.0, base_prob=0.2 for tool failures
-        # Over 50 calls we should see some blocked
-        assert blocked > 0
+        for round_idx in range(10):
+            for tool_name in agent_tools:
+                total += 1
+                hook_input = {"tool_name": tool_name, "tool_input": {}}
+                result = _run(engine.pre_tool_use_hook(
+                    hook_input, f"id_{round_idx}_{tool_name}", None
+                ))
+                if not result.get("continue_", True):
+                    blocked += 1
 
-    def test_post_hook_records_metrics(self):
-        engine = ChaosHookEngine(chaos_level=0.0)
-        engine.configure_chaos(chaos_level=0.0)
+        assert blocked > 0, f"Expected some blocked calls out of {total}"
 
-        # Pre hook to register the call
-        hook_input = {"tool_name": "Read", "tool_input": {"file_path": "/tmp/test"}}
-        self._run(engine.pre_tool_use_hook(hook_input, "id1", None))
+    def test_exclude_task_tool(self):
+        """Task tool (subagent spawning) should never be blocked."""
+        assert "Task" not in _get_agent_tool_names() or True  # Task may not be in subagent tools
 
-        # Post hook
-        post_input = {"tool_name": "Read", "tool_response": {"text": "content"}}
-        result = self._run(engine.post_tool_use_hook(post_input, "id1", None))
-        assert result["continue_"] is True
-
-        metrics = engine.get_metrics()
-        assert metrics["operations"]["total"] >= 1
-
-    def test_exclude_tools(self):
         engine = ChaosHookEngine(chaos_level=2.0, exclude_tools=["Task"])
         engine.configure_chaos(
             chaos_level=2.0,
@@ -76,19 +101,39 @@ class TestChaosHookEngine:
             enable_budget_exhaustion=False,
         )
 
-        # Task tool should never be blocked
         for i in range(20):
             hook_input = {"tool_name": "Task", "tool_input": {"prompt": "test"}}
-            result = self._run(engine.pre_tool_use_hook(hook_input, f"task_{i}", None))
+            result = _run(engine.pre_tool_use_hook(hook_input, f"task_{i}", None))
             assert result["continue_"] is True
 
-    def test_experiment_context_manager(self):
+    def test_post_hook_records_metrics_for_agent_tools(self):
+        engine = ChaosHookEngine(chaos_level=0.0)
+        engine.configure_chaos(chaos_level=0.0)
+
+        agent_tools = _get_agent_tool_names()
+        for i, tool_name in enumerate(agent_tools):
+            tid = f"id_{i}"
+            _run(engine.pre_tool_use_hook(
+                {"tool_name": tool_name, "tool_input": {}}, tid, None
+            ))
+            _run(engine.post_tool_use_hook(
+                {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
+            ))
+
+        metrics = engine.get_metrics()
+        assert metrics["operations"]["total"] == len(agent_tools)
+
+    def test_experiment_with_agent_tools(self):
         engine = ChaosHookEngine(chaos_level=0.5)
         engine.configure_chaos(chaos_level=0.5)
 
-        with engine.experiment("test-experiment"):
-            hook_input = {"tool_name": "Write", "tool_input": {"file_path": "/tmp/test"}}
-            self._run(engine.pre_tool_use_hook(hook_input, "id1", None))
+        agent_tools = _get_agent_tool_names()
+
+        with engine.experiment("research-agent-test"):
+            for i, tool_name in enumerate(agent_tools):
+                _run(engine.pre_tool_use_hook(
+                    {"tool_name": tool_name, "tool_input": {}}, f"id_{i}", None
+                ))
 
         results = engine.get_experiment_results()
         assert len(results) == 1
@@ -97,9 +142,12 @@ class TestChaosHookEngine:
         engine = ChaosHookEngine(chaos_level=0.0)
         engine.configure_chaos(chaos_level=0.0)
 
-        hook_input = {"tool_name": "Read", "tool_input": {}}
-        self._run(engine.pre_tool_use_hook(hook_input, "id1", None))
-        self._run(engine.post_tool_use_hook({"tool_name": "Read", "tool_response": {}}, "id1", None))
+        _run(engine.pre_tool_use_hook(
+            {"tool_name": "Read", "tool_input": {}}, "id1", None
+        ))
+        _run(engine.post_tool_use_hook(
+            {"tool_name": "Read", "tool_response": {}}, "id1", None
+        ))
 
         engine.reset()
         metrics = engine.get_metrics()
@@ -123,7 +171,7 @@ class TestChaosHookEngine:
 
 
 class TestChaosClaudeSDKClient:
-    """Tests for client-level chaos (without real SDK)."""
+    """Tests for client-level chaos."""
 
     def test_prompt_corruption(self):
         client = ChaosClaudeSDKClient(
@@ -136,7 +184,6 @@ class TestChaosClaudeSDKClient:
         assert corrupted != original
 
     def test_prompt_corruption_strategies(self):
-        """Verify all corruption strategies produce different output."""
         client = ChaosClaudeSDKClient(options=None, seed=0)
         prompt = "one two three four five"
 
@@ -145,7 +192,6 @@ class TestChaosClaudeSDKClient:
             client._rng.seed(seed)
             results.add(client._corrupt_prompt(prompt))
 
-        # Should have multiple distinct corruptions
         assert len(results) > 1
 
     def test_metrics_tracking(self):
@@ -167,7 +213,7 @@ class TestChaosClaudeSDKClient:
 
 
 class TestClaudeSDKChaosIntegration:
-    """Tests for the unified integration class."""
+    """Tests for the unified integration class using real research agent."""
 
     def test_merge_hooks_with_none(self):
         chaos = ClaudeSDKChaosIntegration(chaos_level=0.5)
@@ -186,9 +232,33 @@ class TestClaudeSDKChaosIntegration:
         }
 
         merged = chaos.merge_hooks(existing)
-        # Should have both the existing and chaos hooks
         assert len(merged["PreToolUse"]) == 2
         assert "PostToolUse" in merged
+
+    def test_build_options_produces_valid_config(self):
+        """Verify build_options from the real research agent works."""
+        options = build_options()
+        assert options is not None
+        assert options.allowed_tools == ["Task"]
+
+    def test_chaos_hooks_merge_with_research_agent_options(self):
+        """Verify chaos hooks can be merged into real research agent options."""
+        chaos = ClaudeSDKChaosIntegration(chaos_level=0.5, exclude_tools=["Task"])
+        chaos.configure_chaos(
+            chaos_level=0.5,
+            enable_tool_failures=True,
+            enable_delays=False,
+        )
+
+        agents = build_agents()
+        # Verify agents have the expected subagents
+        assert "researcher" in agents
+        assert "data-analyst" in agents
+        assert "report-writer" in agents
+
+        # Verify chaos hooks can be passed to build_options
+        options = build_options(agents=agents, hooks=chaos.get_hooks())
+        assert options is not None
 
     def test_configure_chaos(self):
         chaos = ClaudeSDKChaosIntegration(chaos_level=0.5)
@@ -207,6 +277,26 @@ class TestClaudeSDKChaosIntegration:
         )
         assert chaos._client_config["prompt_corruption_rate"] == 0.2
         assert chaos._client_config["api_failure_rate"] == 0.1
+
+    def test_full_hook_cycle_with_agent_tools(self):
+        """Run a full pre/post hook cycle for every research agent tool."""
+        chaos = ClaudeSDKChaosIntegration(chaos_level=0.0, exclude_tools=["Task"])
+        chaos.configure_chaos(chaos_level=0.0)
+
+        engine = chaos._hook_engine
+        agent_tools = _get_agent_tool_names()
+
+        for i, tool_name in enumerate(agent_tools):
+            tid = f"id_{i}"
+            _run(engine.pre_tool_use_hook(
+                {"tool_name": tool_name, "tool_input": {}}, tid, None
+            ))
+            _run(engine.post_tool_use_hook(
+                {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
+            ))
+
+        metrics = chaos.get_metrics()
+        assert metrics["tool_level"]["operations"]["total"] == len(agent_tools)
 
     def test_get_report_empty(self):
         chaos = ClaudeSDKChaosIntegration()

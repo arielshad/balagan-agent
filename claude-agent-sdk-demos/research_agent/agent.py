@@ -3,6 +3,8 @@
 import asyncio
 import os
 from pathlib import Path
+from typing import Any, Optional
+
 from dotenv import load_dotenv
 from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions, AgentDefinition, HookMatcher
 
@@ -24,33 +26,17 @@ def load_prompt(filename: str) -> str:
         return f.read().strip()
 
 
-async def chat():
-    """Start interactive chat with the research agent."""
+def build_agents() -> dict[str, AgentDefinition]:
+    """Build the research agent subagent definitions.
 
-    # Check API key first, before creating any files
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("\nError: ANTHROPIC_API_KEY not found.")
-        print("Set it in a .env file or export it in your shell.")
-        print("Get your key at: https://console.anthropic.com/settings/keys\n")
-        return
-
-    # Setup session directory and transcript
-    transcript_file, session_dir = setup_session()
-
-    # Create transcript writer
-    transcript = TranscriptWriter(transcript_file)
-
-    # Load prompts
-    lead_agent_prompt = load_prompt("lead_agent.txt")
+    Returns a dict of agent name -> AgentDefinition suitable for
+    ``ClaudeAgentOptions(agents=...)``.
+    """
     researcher_prompt = load_prompt("researcher.txt")
     data_analyst_prompt = load_prompt("data_analyst.txt")
     report_writer_prompt = load_prompt("report_writer.txt")
 
-    # Initialize subagent tracker with transcript writer and session directory
-    tracker = SubagentTracker(transcript_writer=transcript, session_dir=session_dir)
-
-    # Define specialized subagents
-    agents = {
+    return {
         "researcher": AgentDefinition(
             description=(
                 "Use this agent when you need to gather research information on any topic. "
@@ -87,34 +73,85 @@ async def chat():
             tools=["Skill", "Write", "Glob", "Read", "Bash"],
             prompt=report_writer_prompt,
             model="haiku"
-        )
+        ),
     }
 
-    # Set up hooks for tracking
-    hooks = {
+
+def build_tracker_hooks(tracker: SubagentTracker) -> dict[str, list]:
+    """Build PreToolUse/PostToolUse hooks for subagent tracking.
+
+    Returns a hooks dict suitable for ``ClaudeAgentOptions(hooks=...)``.
+    """
+    return {
         'PreToolUse': [
             HookMatcher(
-                matcher=None,  # Match all tools
+                matcher=None,
                 hooks=[tracker.pre_tool_use_hook]
             )
         ],
         'PostToolUse': [
             HookMatcher(
-                matcher=None,  # Match all tools
+                matcher=None,
                 hooks=[tracker.post_tool_use_hook]
             )
-        ]
+        ],
     }
 
-    options = ClaudeAgentOptions(
+
+def build_options(
+    agents: Optional[dict[str, AgentDefinition]] = None,
+    hooks: Optional[dict[str, list]] = None,
+    model: str = "haiku",
+) -> ClaudeAgentOptions:
+    """Build ``ClaudeAgentOptions`` for the research agent.
+
+    Args:
+        agents: Subagent definitions. Defaults to :func:`build_agents`.
+        hooks: Hook matchers. Defaults to empty (no hooks).
+        model: Model to use. Defaults to ``"haiku"``.
+
+    Returns:
+        A configured ``ClaudeAgentOptions`` instance.
+    """
+    if agents is None:
+        agents = build_agents()
+
+    lead_agent_prompt = load_prompt("lead_agent.txt")
+
+    return ClaudeAgentOptions(
         permission_mode="bypassPermissions",
-        setting_sources=["project"],  # Load skills from project .claude directory
+        setting_sources=["project"],
         system_prompt=lead_agent_prompt,
         allowed_tools=["Task"],
         agents=agents,
-        hooks=hooks,
-        model="haiku"
+        hooks=hooks or {},
+        model=model,
     )
+
+
+async def chat():
+    """Start interactive chat with the research agent."""
+
+    # Check API key first, before creating any files
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        print("\nError: ANTHROPIC_API_KEY not found.")
+        print("Set it in a .env file or export it in your shell.")
+        print("Get your key at: https://console.anthropic.com/settings/keys\n")
+        return
+
+    # Setup session directory and transcript
+    transcript_file, session_dir = setup_session()
+
+    # Create transcript writer
+    transcript = TranscriptWriter(transcript_file)
+
+    # Initialize subagent tracker with transcript writer and session directory
+    tracker = SubagentTracker(transcript_writer=transcript, session_dir=session_dir)
+
+    # Build agent components
+    agents = build_agents()
+    hooks = build_tracker_hooks(tracker)
+    options = build_options(agents=agents, hooks=hooks)
 
     print("\n" + "=" * 50)
     print("  Research Agent")

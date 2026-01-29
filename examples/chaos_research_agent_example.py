@@ -1,28 +1,28 @@
 """Chaos testing the Claude Agent SDK research agent with BalaganAgent.
 
-This example demonstrates two-level chaos injection on the multi-agent
-research system from ``claude-agent-sdk-demos/research_agent/``:
+This example uses the actual research agent from
+``claude-agent-sdk-demos/research_agent/agent.py`` and injects chaos at
+two levels:
 
-- **Level 1 (hooks)**: Injects tool failures, delays, hallucinations,
-  and context corruption into built-in SDK tools (WebSearch, Write, etc.)
-- **Level 2 (client)**: Injects prompt corruption, query delays, and
-  API failures at the ClaudeSDKClient level.
+- **Level 1 (hooks)**: Injects tool failures, delays, hallucinations into
+  built-in SDK tools (WebSearch, Write, Read, Bash, etc.) via PreToolUse/
+  PostToolUse hooks.
+- **Level 2 (client)**: Injects prompt corruption, query delays, and API
+  failures at the ClaudeSDKClient level.
 
 Usage::
 
-    # Basic chaos test
+    # Simulated hook chaos (no API key needed)
     python examples/chaos_research_agent_example.py
 
-    # Higher chaos level
-    python examples/chaos_research_agent_example.py --chaos-level 0.8
+    # Escalating chaos levels
+    python examples/chaos_research_agent_example.py --test-mode escalating
 
-    # Run all test modes
+    # Full integration with real agent (requires ANTHROPIC_API_KEY)
+    python examples/chaos_research_agent_example.py --test-mode full
+
+    # All modes
     python examples/chaos_research_agent_example.py --test-mode all
-
-Dependencies:
-    - balaganagent
-    - claude-agent-sdk
-    - python-dotenv
 """
 
 from __future__ import annotations
@@ -34,9 +34,16 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Add project root and claude-agent-sdk-demos to path so we can import both
+# balaganagent and research_agent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_DEMOS_DIR = _PROJECT_ROOT / "claude-agent-sdk-demos"
+sys.path.insert(0, str(_PROJECT_ROOT))
+sys.path.insert(0, str(_DEMOS_DIR))
 
+from balaganagent.hooks import ChaosHookEngine
 from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
+from research_agent.agent import build_agents, build_options
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +55,7 @@ from balaganagent.wrappers.claude_sdk_hooks import ClaudeSDKChaosIntegration
 class Config:
     topic: str = "artificial intelligence"
     chaos_level: float = 0.5
-    test_mode: str = "basic"  # basic | escalating | all
+    test_mode: str = "basic"  # basic | escalating | full | all
     verbose: bool = True
 
 
@@ -58,24 +65,60 @@ def _log(msg: str, verbose: bool = True):
 
 
 # ---------------------------------------------------------------------------
-# Example 1: Basic hook-level chaos (no API key needed — mock mode)
+# Helper: collect the tool names the research agent actually uses
+# ---------------------------------------------------------------------------
+
+
+def _get_research_agent_tools() -> list[tuple[str, dict]]:
+    """Return (tool_name, sample_input) for every tool the research agent uses.
+
+    The tool names come from the real ``build_agents()`` definitions, so this
+    stays in sync with any changes to the research agent.
+    """
+    agents = build_agents()
+    seen: dict[str, dict] = {}
+    # Example inputs keyed by tool name
+    sample_inputs = {
+        "WebSearch": {"query": "artificial intelligence breakthroughs"},
+        "Write": {"file_path": "/tmp/notes.md", "content": "Research notes..."},
+        "Read": {"file_path": "/tmp/notes.md"},
+        "Glob": {"pattern": "files/research_notes/*.md"},
+        "Bash": {"command": "echo 'generating chart...'"},
+        "Skill": {"skill": "pdf"},
+        "Task": {"prompt": "research topic", "subagent_type": "researcher"},
+    }
+    for agent_def in agents.values():
+        for tool_name in agent_def.tools:
+            if tool_name not in seen:
+                seen[tool_name] = sample_inputs.get(tool_name, {})
+    return list(seen.items())
+
+
+# ---------------------------------------------------------------------------
+# Example 1: Hook-level chaos using research agent tool definitions
 # ---------------------------------------------------------------------------
 
 
 def example_basic_hook_chaos(config: Config):
-    """Demonstrate ChaosHookEngine with simulated hook calls.
+    """Inject chaos into the exact tools the research agent uses.
 
-    This runs without an API key by simulating the hook call cycle
-    that the SDK would perform during agent execution.
+    Simulates the hook call cycle the SDK performs during agent execution,
+    using the real tool list from ``research_agent.agent.build_agents()``.
+    No API key required.
     """
-    from balaganagent.hooks import ChaosHookEngine
-
     _log("\n" + "=" * 70, config.verbose)
-    _log("EXAMPLE 1: Hook-Based Tool Chaos (simulated)", config.verbose)
+    _log("EXAMPLE 1: Hook-Based Chaos on Research Agent Tools", config.verbose)
     _log("=" * 70, config.verbose)
-    _log(f"Chaos Level: {config.chaos_level}\n", config.verbose)
+    _log(f"Chaos Level: {config.chaos_level}", config.verbose)
 
-    engine = ChaosHookEngine(chaos_level=config.chaos_level)
+    # Get the real tool list from the research agent
+    tools = _get_research_agent_tools()
+    _log(f"Tools under test: {[t for t, _ in tools]}\n", config.verbose)
+
+    engine = ChaosHookEngine(
+        chaos_level=config.chaos_level,
+        exclude_tools=["Task"],  # Don't chaos subagent spawning
+    )
     engine.configure_chaos(
         chaos_level=config.chaos_level,
         enable_tool_failures=True,
@@ -85,24 +128,14 @@ def example_basic_hook_chaos(config: Config):
         enable_budget_exhaustion=False,
     )
 
-    # Simulate SDK tool calls by invoking hooks directly
-    tools_to_simulate = [
-        ("WebSearch", {"query": config.topic}),
-        ("Write", {"file_path": "/tmp/notes.md", "content": "Research notes..."}),
-        ("Read", {"file_path": "/tmp/notes.md"}),
-        ("Bash", {"command": "echo 'generating chart...'"}),
-        ("Write", {"file_path": "/tmp/report.pdf", "content": "Final report..."}),
-    ]
-
     successes = 0
     failures = 0
 
     with engine.experiment(f"hook-chaos-{config.chaos_level}"):
-        for i, (tool_name, tool_input) in enumerate(tools_to_simulate):
+        for i, (tool_name, tool_input) in enumerate(tools):
             tool_use_id = f"tool_{i}"
             hook_input = {"tool_name": tool_name, "tool_input": tool_input}
 
-            # PreToolUse
             pre_result = asyncio.get_event_loop().run_until_complete(
                 engine.pre_tool_use_hook(hook_input, tool_use_id, None)
             )
@@ -113,17 +146,14 @@ def example_basic_hook_chaos(config: Config):
                 _log(f"  {tool_name}: BLOCKED ({fault})", config.verbose)
                 continue
 
-            # Simulate tool execution (would normally happen in the SDK)
             tool_response = {"type": "text", "text": f"Result from {tool_name}"}
-
-            # PostToolUse
             post_input = {"tool_name": tool_name, "tool_response": tool_response}
             post_result = asyncio.get_event_loop().run_until_complete(
                 engine.post_tool_use_hook(post_input, tool_use_id, None)
             )
 
             if "tool_response" in post_result and post_result["tool_response"] != tool_response:
-                _log(f"  {tool_name}: SUCCESS (output corrupted by hallucination)", config.verbose)
+                _log(f"  {tool_name}: SUCCESS (output corrupted)", config.verbose)
             else:
                 _log(f"  {tool_name}: SUCCESS", config.verbose)
             successes += 1
@@ -140,40 +170,39 @@ def example_basic_hook_chaos(config: Config):
 
 
 def example_escalating_chaos(config: Config):
-    """Test hook-based chaos at escalating levels."""
-    from balaganagent.hooks import ChaosHookEngine
-
+    """Test research agent tools at escalating chaos levels."""
     _log("\n" + "=" * 70, config.verbose)
-    _log("EXAMPLE 2: Escalating Hook Chaos Levels", config.verbose)
+    _log("EXAMPLE 2: Escalating Chaos on Research Agent Tools", config.verbose)
     _log("=" * 70 + "\n", config.verbose)
 
-    chaos_levels = [0.0, 0.25, 0.5, 0.75, 1.0]
-    tools = [
-        ("WebSearch", {"query": "test"}),
-        ("Write", {"file_path": "/tmp/test.md", "content": "test"}),
-        ("Read", {"file_path": "/tmp/test.md"}),
-    ]
+    tools = _get_research_agent_tools()
+    # Filter out Task since we exclude it from chaos
+    tools = [(name, inp) for name, inp in tools if name != "Task"]
 
+    chaos_levels = [0.0, 0.25, 0.5, 0.75, 1.0]
+
+    _log(f"Tools: {[t for t, _ in tools]}", config.verbose)
     _log(f"{'Level':<10} {'Success':<15} {'Rate':<10}", config.verbose)
     _log("-" * 35, config.verbose)
 
     for level in chaos_levels:
-        engine = ChaosHookEngine(chaos_level=level)
+        engine = ChaosHookEngine(chaos_level=level, exclude_tools=["Task"])
         engine.configure_chaos(
             chaos_level=level,
             enable_tool_failures=True,
-            enable_delays=False,  # Skip delays for speed
+            enable_delays=False,
             enable_hallucinations=False,
             enable_context_corruption=False,
             enable_budget_exhaustion=False,
         )
 
         successes = 0
-        total = len(tools) * 5  # 5 rounds
+        rounds = 5
+        total = len(tools) * rounds
 
-        for _round in range(5):
+        for r in range(rounds):
             for i, (tool_name, tool_input) in enumerate(tools):
-                tool_use_id = f"tool_{_round}_{i}"
+                tool_use_id = f"tool_{r}_{i}"
                 hook_input = {"tool_name": tool_name, "tool_input": tool_input}
 
                 pre_result = asyncio.get_event_loop().run_until_complete(
@@ -194,41 +223,33 @@ def example_escalating_chaos(config: Config):
 
 
 # ---------------------------------------------------------------------------
-# Example 3: Full integration (requires API key)
+# Example 3: Full integration with the real research agent (requires API key)
 # ---------------------------------------------------------------------------
 
 
 async def example_full_integration(config: Config):
-    """Full two-level chaos integration with the real research agent.
+    """Run the actual research agent with two-level chaos.
 
-    Requires ANTHROPIC_API_KEY to be set.
+    Uses ``build_agents()`` and ``build_options()`` from the research agent,
+    injecting chaos hooks and wrapping the client.
+
+    Requires ``ANTHROPIC_API_KEY`` to be set.
     """
     if not os.environ.get("ANTHROPIC_API_KEY"):
         _log("\nSkipping full integration (no ANTHROPIC_API_KEY set)", config.verbose)
         _log("Set ANTHROPIC_API_KEY to run this example.\n", config.verbose)
         return
 
-    try:
-        from claude_agent_sdk import ClaudeAgentOptions, AgentDefinition, HookMatcher
-    except ImportError:
-        _log("\nSkipping full integration (claude-agent-sdk not installed)\n", config.verbose)
-        return
-
     _log("\n" + "=" * 70, config.verbose)
-    _log("EXAMPLE 3: Full Two-Level Chaos Integration", config.verbose)
+    _log("EXAMPLE 3: Full Two-Level Chaos on Research Agent", config.verbose)
     _log("=" * 70, config.verbose)
-
-    # Load prompts from research agent
-    prompts_dir = Path(__file__).parent.parent / "claude-agent-sdk-demos" / "research_agent" / "prompts"
-
-    def load_prompt(filename: str) -> str:
-        with open(prompts_dir / filename, "r") as f:
-            return f.read().strip()
+    _log(f"Topic: {config.topic}", config.verbose)
+    _log(f"Chaos Level: {config.chaos_level}\n", config.verbose)
 
     # Set up chaos integration
     chaos = ClaudeSDKChaosIntegration(
         chaos_level=config.chaos_level,
-        exclude_tools=["Task"],  # Don't inject chaos on Task (subagent spawning)
+        exclude_tools=["Task"],
         client_chaos_config={
             "prompt_corruption_rate": 0.1,
             "query_delay_range": (0.0, 1.0),
@@ -244,38 +265,9 @@ async def example_full_integration(config: Config):
         enable_budget_exhaustion=False,
     )
 
-    # Build agent definitions (same as research_agent/agent.py)
-    agents = {
-        "researcher": AgentDefinition(
-            description="Research agent that searches the web for information.",
-            tools=["WebSearch", "Write"],
-            prompt=load_prompt("researcher.txt"),
-            model="haiku",
-        ),
-        "data-analyst": AgentDefinition(
-            description="Data analyst that creates charts and analysis.",
-            tools=["Glob", "Read", "Bash", "Write"],
-            prompt=load_prompt("data_analyst.txt"),
-            model="haiku",
-        ),
-        "report-writer": AgentDefinition(
-            description="Report writer that creates PDF reports.",
-            tools=["Skill", "Write", "Glob", "Read", "Bash"],
-            prompt=load_prompt("report_writer.txt"),
-            model="haiku",
-        ),
-    }
-
-    # Build options with chaos hooks merged in
-    options = ClaudeAgentOptions(
-        permission_mode="bypassPermissions",
-        setting_sources=["project"],
-        system_prompt=load_prompt("lead_agent.txt"),
-        allowed_tools=["Task"],
-        agents=agents,
-        hooks=chaos.get_hooks(),
-        model="haiku",
-    )
+    # Build options from the real research agent, with chaos hooks merged in
+    agents = build_agents()
+    options = build_options(agents=agents, hooks=chaos.get_hooks())
 
     # Run experiment
     with chaos.experiment("research-agent-resilience"):
@@ -310,7 +302,9 @@ async def example_full_integration(config: Config):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Chaos test the research agent")
+    parser = argparse.ArgumentParser(
+        description="Chaos test the research agent from claude-agent-sdk-demos"
+    )
     parser.add_argument("--topic", default="artificial intelligence")
     parser.add_argument("--chaos-level", type=float, default=0.5)
     parser.add_argument(
@@ -329,7 +323,7 @@ def main():
     )
 
     _log("\n" + "#" * 70, config.verbose)
-    _log("#  BALAGAN AGENT - RESEARCH AGENT CHAOS TESTING (HOOKS)", config.verbose)
+    _log("#  BALAGAN AGENT - RESEARCH AGENT CHAOS TESTING", config.verbose)
     _log("#" * 70, config.verbose)
 
     if config.test_mode in ("basic", "all"):
