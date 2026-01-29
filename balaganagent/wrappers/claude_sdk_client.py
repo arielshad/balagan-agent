@@ -118,9 +118,7 @@ class ChaosClaudeSDKClient:
         # 3. Timeout
         if self._rng.random() < self._timeout_rate:
             duration = (time.time() - start) * 1000
-            self._metrics.record_operation(
-                "query", duration, success=False, fault_type="timeout"
-            )
+            self._metrics.record_operation("query", duration, success=False, fault_type="timeout")
             self._mttr.record_failure("query", "timeout")
             self._last_fault = "timeout"
             raise TimeoutError("Chaos injection: simulated query timeout")
@@ -137,8 +135,11 @@ class ChaosClaudeSDKClient:
         # Record recovery if previous query had a fault
         if self._last_fault:
             self._mttr.record_recovery(
-                "query", self._last_fault,
-                recovery_method="retry", retries=0, success=True,
+                "query",
+                self._last_fault,
+                recovery_method="retry",
+                retries=0,
+                success=True,
             )
             self._last_fault = None
 

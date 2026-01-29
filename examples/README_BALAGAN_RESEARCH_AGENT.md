@@ -316,6 +316,6 @@ This may indicate the tools are already failing. Check your tool implementation 
 
 ## Learn More
 
-- [BalaganAgent Documentation](https://github.com/anthropics/agent-chaos)
+- [BalaganAgent Documentation](https://github.com/arielshad/balagan-agent)
 - [Claude Agent SDK](https://github.com/anthropics/anthropic-sdk-python)
 - [Chaos Engineering Principles](https://principlesofchaos.org/)

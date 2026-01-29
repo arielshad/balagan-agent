@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from ..experiment import Experiment, ExperimentConfig, ExperimentResult
+from ..injectors.base import FaultType
 from ..injectors import (
     BaseInjector,
     BudgetExhaustionInjector,
@@ -153,6 +154,22 @@ class ClaudeAgentSDKToolProxy:
                         self._mttr.record_failure(self._tool_name, fault_type)
 
                         result, _details = injector.inject(self._tool_name, context)
+                        # inject() either raises directly (EXCEPTION/TIMEOUT
+                        # modes) or returns a fault result for non-raising
+                        # modes.  For tool-failure injectors the non-raising
+                        # modes (EMPTY_RESPONSE, MALFORMED_RESPONSE, etc.)
+                        # should still surface as exceptions so callers can
+                        # detect and retry.
+                        if fault_type == FaultType.TOOL_FAILURE.value:
+                            from ..injectors.tool_failure import (
+                                ToolFailureException,
+                            )
+
+                            raise ToolFailureException(
+                                _details.get("error_message", "Injected fault"),
+                                _details.get("failure_mode", fault_type),
+                                self._tool_name,
+                            )
                         if result is not None:
                             call.end_time = time.time()
                             call.fault_injected = fault_type
@@ -343,7 +360,7 @@ class ClaudeAgentSDKWrapper:
 
     def configure_chaos(
         self,
-        chaos_level: float = 1.0,
+        chaos_level: Optional[float] = None,
         enable_tool_failures: bool = True,
         enable_delays: bool = True,
         enable_hallucinations: bool = True,
@@ -357,21 +374,24 @@ class ClaudeAgentSDKWrapper:
         from ..injectors.hallucination import HallucinationConfig
         from ..injectors.tool_failure import ToolFailureConfig
 
-        self._chaos_level = chaos_level
+        if chaos_level is not None:
+            self._chaos_level = chaos_level
         self._injectors.clear()
-        base_prob = 0.1 * chaos_level
+        base_prob = min(self._chaos_level * self._chaos_level, 0.9)
 
         if enable_tool_failures:
             self._injectors.append(ToolFailureInjector(ToolFailureConfig(probability=base_prob)))
         if enable_delays:
-            self._injectors.append(DelayInjector(DelayConfig(probability=base_prob * 2)))
+            self._injectors.append(DelayInjector(DelayConfig(probability=min(base_prob * 2, 1.0))))
         if enable_hallucinations:
             self._injectors.append(
-                HallucinationInjector(HallucinationConfig(probability=base_prob * 0.5))
+                HallucinationInjector(HallucinationConfig(probability=min(base_prob * 0.5, 1.0)))
             )
         if enable_context_corruption:
             self._injectors.append(
-                ContextCorruptionInjector(ContextCorruptionConfig(probability=base_prob * 0.3))
+                ContextCorruptionInjector(
+                    ContextCorruptionConfig(probability=min(base_prob * 0.3, 1.0))
+                )
             )
         if enable_budget_exhaustion:
             self._injectors.append(

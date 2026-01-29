@@ -79,9 +79,9 @@ class TestChaosHookEngine:
             for tool_name in agent_tools:
                 total += 1
                 hook_input = {"tool_name": tool_name, "tool_input": {}}
-                result = _run(engine.pre_tool_use_hook(
-                    hook_input, f"id_{round_idx}_{tool_name}", None
-                ))
+                result = _run(
+                    engine.pre_tool_use_hook(hook_input, f"id_{round_idx}_{tool_name}", None)
+                )
                 if not result.get("continue_", True):
                     blocked += 1
 
@@ -113,12 +113,12 @@ class TestChaosHookEngine:
         agent_tools = _get_agent_tool_names()
         for i, tool_name in enumerate(agent_tools):
             tid = f"id_{i}"
-            _run(engine.pre_tool_use_hook(
-                {"tool_name": tool_name, "tool_input": {}}, tid, None
-            ))
-            _run(engine.post_tool_use_hook(
-                {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
-            ))
+            _run(engine.pre_tool_use_hook({"tool_name": tool_name, "tool_input": {}}, tid, None))
+            _run(
+                engine.post_tool_use_hook(
+                    {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
+                )
+            )
 
         metrics = engine.get_metrics()
         assert metrics["operations"]["total"] == len(agent_tools)
@@ -131,9 +131,11 @@ class TestChaosHookEngine:
 
         with engine.experiment("research-agent-test"):
             for i, tool_name in enumerate(agent_tools):
-                _run(engine.pre_tool_use_hook(
-                    {"tool_name": tool_name, "tool_input": {}}, f"id_{i}", None
-                ))
+                _run(
+                    engine.pre_tool_use_hook(
+                        {"tool_name": tool_name, "tool_input": {}}, f"id_{i}", None
+                    )
+                )
 
         results = engine.get_experiment_results()
         assert len(results) == 1
@@ -142,12 +144,8 @@ class TestChaosHookEngine:
         engine = ChaosHookEngine(chaos_level=0.0)
         engine.configure_chaos(chaos_level=0.0)
 
-        _run(engine.pre_tool_use_hook(
-            {"tool_name": "Read", "tool_input": {}}, "id1", None
-        ))
-        _run(engine.post_tool_use_hook(
-            {"tool_name": "Read", "tool_response": {}}, "id1", None
-        ))
+        _run(engine.pre_tool_use_hook({"tool_name": "Read", "tool_input": {}}, "id1", None))
+        _run(engine.post_tool_use_hook({"tool_name": "Read", "tool_response": {}}, "id1", None))
 
         engine.reset()
         metrics = engine.get_metrics()
@@ -288,12 +286,12 @@ class TestClaudeSDKChaosIntegration:
 
         for i, tool_name in enumerate(agent_tools):
             tid = f"id_{i}"
-            _run(engine.pre_tool_use_hook(
-                {"tool_name": tool_name, "tool_input": {}}, tid, None
-            ))
-            _run(engine.post_tool_use_hook(
-                {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
-            ))
+            _run(engine.pre_tool_use_hook({"tool_name": tool_name, "tool_input": {}}, tid, None))
+            _run(
+                engine.post_tool_use_hook(
+                    {"tool_name": tool_name, "tool_response": {"text": "ok"}}, tid, None
+                )
+            )
 
         metrics = chaos.get_metrics()
         assert metrics["tool_level"]["operations"]["total"] == len(agent_tools)

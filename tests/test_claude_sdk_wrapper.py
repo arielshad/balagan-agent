@@ -127,11 +127,10 @@ class TestClaudeAgentSDKToolProxy:
         proxy = ClaudeAgentSDKToolProxy(func, name="t", chaos_level=1.0)
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
         proxy.add_injector(injector)
-        # 100% failure → injector fires on every call; it may return
-        # a non-None result (short-circuiting the real func) or None
-        # (letting the func run).  Either way a call record is created.
-        result = proxy()
-        assert result is not None
+        # 100% failure → injector fires on every call and raises
+        # a ToolFailureException.  A call record is still created.
+        with pytest.raises(Exception):
+            proxy()
         assert len(proxy.get_call_history()) == 1
 
     def test_proxy_preserves_func_metadata(self):
@@ -301,9 +300,9 @@ class TestClaudeAgentSDKChaosExample:
         wrapper.add_injector(injector, tools=["search_web"])
 
         tools = wrapper.get_wrapped_tools()
-        # search_web has 100% failure injection
-        result = tools["search_web"]({"query": "AI"})
-        assert result is not None  # injector returns an error dict
+        # search_web has 100% failure injection — always raises
+        with pytest.raises(Exception):
+            tools["search_web"]({"query": "AI"})
 
         # save_report has no injector — works normally
         result = tools["save_report"]({"content": "hello"})

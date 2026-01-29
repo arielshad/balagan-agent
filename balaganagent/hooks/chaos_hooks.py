@@ -254,8 +254,11 @@ class ChaosHookEngine:
                 # Record recovery from previous fault if any
                 if tool_name in self._last_fault:
                     self._mttr.record_recovery(
-                        tool_name, self._last_fault.pop(tool_name),
-                        recovery_method="retry", retries=0, success=True,
+                        tool_name,
+                        self._last_fault.pop(tool_name),
+                        recovery_method="retry",
+                        retries=0,
+                        success=True,
                     )
                 return {"continue_": True, "tool_response": result}
 
@@ -265,8 +268,11 @@ class ChaosHookEngine:
         # Record MTTR recovery if this tool had a previous fault
         if tool_name in self._last_fault:
             self._mttr.record_recovery(
-                tool_name, self._last_fault.pop(tool_name),
-                recovery_method="retry", retries=0, success=True,
+                tool_name,
+                self._last_fault.pop(tool_name),
+                recovery_method="retry",
+                retries=0,
+                success=True,
             )
 
         return {"continue_": True}

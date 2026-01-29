@@ -184,9 +184,7 @@ class TestChaosWrapperIntegration:
 
     def test_chaos_wrapper_wraps_tools(self):
         """ClaudeAgentSDKWrapper wraps research tools."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
 
         tools = wrapper.get_wrapped_tools()
 
@@ -197,9 +195,7 @@ class TestChaosWrapperIntegration:
 
     def test_chaos_wrapper_returns_list(self):
         """get_wrapped_tool_list returns proper format."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
 
         tool_list = wrapper.get_wrapped_tool_list()
 
@@ -209,9 +205,7 @@ class TestChaosWrapperIntegration:
 
     def test_chaos_wrapper_no_chaos_baseline(self):
         """Tools work without chaos (baseline test)."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.0
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.0)
 
         tools = wrapper.get_wrapped_tools()
 
@@ -224,9 +218,7 @@ class TestChaosWrapperIntegration:
 
     def test_chaos_wrapper_preserves_tool_names(self):
         """Wrapped tools preserve their names."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
 
         tools = wrapper.get_wrapped_tools()
 
@@ -245,9 +237,7 @@ class TestResearchWorkflow:
     @pytest.mark.asyncio
     async def test_research_workflow_mock_mode(self):
         """Research workflow completes in mock mode."""
-        config = ResearchConfig(
-            topic="test topic", mode="mock", use_chaos=False, verbose=False
-        )
+        config = ResearchConfig(topic="test topic", mode="mock", use_chaos=False, verbose=False)
 
         result = await run_research_agent(config)
 
@@ -260,9 +250,7 @@ class TestResearchWorkflow:
     @pytest.mark.asyncio
     async def test_research_workflow_has_proper_structure(self):
         """Research workflow returns properly structured results."""
-        config = ResearchConfig(
-            topic="test", mode="mock", use_chaos=False, verbose=False
-        )
+        config = ResearchConfig(topic="test", mode="mock", use_chaos=False, verbose=False)
 
         result = await run_research_agent(config)
 
@@ -302,9 +290,7 @@ class TestChaosReliability:
 
     def test_research_under_low_chaos(self):
         """Research completes with low chaos (0.25)."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.25
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.25)
         wrapper.configure_chaos(
             enable_tool_failures=True, enable_delays=True, enable_hallucinations=False
         )
@@ -324,9 +310,7 @@ class TestChaosReliability:
 
     def test_research_under_medium_chaos(self):
         """Research shows degradation under medium chaos (0.5)."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
         wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
 
         tools = wrapper.get_wrapped_tools()
@@ -344,9 +328,7 @@ class TestChaosReliability:
 
     def test_research_under_high_chaos(self):
         """Research significantly degrades under high chaos (1.0)."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=1.0
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=1.0)
         wrapper.configure_chaos(enable_tool_failures=True, enable_delays=False)
 
         tools = wrapper.get_wrapped_tools()
@@ -364,9 +346,7 @@ class TestChaosReliability:
 
     def test_targeted_failure_injection(self):
         """Can inject failures on specific tools."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
 
         # Inject 100% failure on search_web
         injector = ToolFailureInjector(ToolFailureConfig(probability=1.0))
@@ -393,9 +373,7 @@ class TestChaosMetrics:
 
     def test_metrics_collection(self):
         """Wrapper collects metrics from tools."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
         wrapper.configure_chaos(enable_tool_failures=True)
 
         tools = wrapper.get_wrapped_tools()
@@ -415,9 +393,7 @@ class TestChaosMetrics:
 
     def test_mttr_calculation(self):
         """MTTR is calculated for tool failures."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=1.0
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=1.0)
 
         # Inject failures with low probability but some failures
         injector = ToolFailureInjector(ToolFailureConfig(probability=0.3))
@@ -440,9 +416,7 @@ class TestChaosMetrics:
 
     def test_metrics_per_tool(self):
         """Metrics are collected per tool."""
-        wrapper = ClaudeAgentSDKWrapper(
-            tools=get_research_tools(mode="mock"), chaos_level=0.5
-        )
+        wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=0.5)
         wrapper.configure_chaos(enable_tool_failures=True)
 
         tools = wrapper.get_wrapped_tools()
@@ -477,15 +451,13 @@ class TestChaosMetrics:
     [
         (0.0, 1.0),  # No chaos - should have 100% success
         (0.25, 0.5),  # Light chaos - should work >50%
-        (0.5, 0.2),   # Medium chaos - should work >20%
-        (1.0, 0.1),   # Heavy chaos - should work >10%
+        (0.5, 0.2),  # Medium chaos - should work >20%
+        (1.0, 0.1),  # Heavy chaos - should work >10%
     ],
 )
 def test_chaos_levels(chaos_level: float, min_success_rate: float):
     """Test agent reliability at different chaos levels."""
-    wrapper = ClaudeAgentSDKWrapper(
-        tools=get_research_tools(mode="mock"), chaos_level=chaos_level
-    )
+    wrapper = ClaudeAgentSDKWrapper(tools=get_research_tools(mode="mock"), chaos_level=chaos_level)
     wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
 
     tools = wrapper.get_wrapped_tools()
