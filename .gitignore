@@ -64,3 +64,6 @@ logs/
 research_report_*.md
 
 reports/
+
+# MkDocs
+site/

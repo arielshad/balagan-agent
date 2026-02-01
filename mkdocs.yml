@@ -1,0 +1,65 @@
+site_name: BalaganAgent
+site_url: https://arielshad.github.io/balagan-agent/
+site_description: Chaos Engineering for AI Agents — stress-test your agents before users do.
+site_author: Ariel Shadkhan
+repo_url: https://github.com/arielshad/balagan-agent
+repo_name: arielshad/balagan-agent
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - How It Works: how-it-works.md
+  - Integrations: integrations.md
+  - CLI Reference: cli.md
+  - Examples: examples.md
+  - Roadmap: roadmap.md
+  - FAQ: faq.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/arielshad/balagan-agent
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/balagan-agent/
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/ariel-shadkhan/

@@ -16,13 +16,20 @@ Everyone demos agents. Nobody stress-tests them.
 
 [Quick Start](#quick-start) •
 [Features](#features) •
-[Documentation](#documentation) •
+[Docs](https://arielshad.github.io/balagan-agent/) •
 [Examples](#examples) •
 [Contributing](#contributing)
 
 </div>
 
 BalaganAgent is a reliability testing framework that stress-tests AI agents through controlled fault injection—because your agent will fail in production, and you should know how it handles it.
+
+> **Latest: v0.4.0** — [Changelog](CHANGELOG.md) · [Full Documentation](https://arielshad.github.io/balagan-agent/)
+
+```bash
+pip install balagan-agent        # Install
+balaganagent demo --chaos-level 0.5  # Run your first experiment in 60 seconds
+```
 
 ---
 
@@ -452,6 +459,7 @@ balaganagent/
 
 ## Documentation
 
+- **[Full Docs (GitHub Pages)](https://arielshad.github.io/balagan-agent/)** - How it works, integrations, CLI reference, FAQ
 - **[Development Guide](DEVELOPMENT.md)** - Set up your development environment
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to BalaganAgent
 - **[Security Policy](SECURITY.md)** - Vulnerability reporting process
