@@ -1,6 +1,7 @@
 # BalaganAgent
 
 <div style="text-align: center; margin: 2rem 0;">
+<img src="assets/ph-output/thumbnail.png" alt="BalaganAgent" style="width: 120px; height: 120px; margin-bottom: 1rem;">
 <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Chaos Engineering for AI Agents</h2>
 <p style="font-size: 1.25rem; color: #666;">Everyone demos agents. Nobody stress-tests them.</p>
 </div>
@@ -26,9 +27,17 @@
 
 ## Why?
 
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-1-problem.png" alt="AI agents fail silently in production" style="width: 100%; border-radius: 8px;">
+</figure>
+
 AI agents are entering production, but there's **zero reliability discipline**. Agents fail silently — tool calls time out, return garbage, or hallucinate. Context gets corrupted. Budgets get exhausted. Nobody knows until users complain.
 
 BalaganAgent brings battle-tested chaos engineering principles (Chaos Monkey, Gremlin) to AI agents.
+
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-2-solution.png" alt="Inject faults in dev, fix before production" style="width: 100%; border-radius: 8px;">
+</figure>
 
 ## What you get
 
@@ -36,6 +45,12 @@ BalaganAgent brings battle-tested chaos engineering principles (Chaos Monkey, Gr
 - :fontawesome-solid-chart-line: **Metrics** — MTTR (Mean Time To Recovery) + SRE-grade reliability scoring
 - :fontawesome-solid-file-lines: **Reports** — terminal / JSON / Markdown / HTML dashboards
 - :fontawesome-solid-plug: **Framework wrappers** — CrewAI, AutoGen, LangChain, Claude Agent SDK
+
+## How it works
+
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-3-architecture.png" alt="Architecture: Injectors → Metrics → Reports" style="width: 100%; border-radius: 8px;">
+</figure>
 
 ## Install
 
@@ -68,26 +83,28 @@ Or use the CLI:
 balaganagent demo --chaos-level 0.5
 ```
 
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-5-code.png" alt="3-line integration with any framework" style="width: 100%; border-radius: 8px;">
+</figure>
+
 ## Example report output
 
-```
-============================================================
-  BALAGANAGENT EXPERIMENT REPORT
-============================================================
-  Status: WARNING
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-4-report.png" alt="Example chaos report dashboard" style="width: 100%; border-radius: 8px;">
+</figure>
 
-SUMMARY
-  Operations:  150 (Success Rate: 87.3%)
-  Faults:      23 injected
+## Stress test results
 
-RELIABILITY
-  Score: 0.82  |  Grade: 99%  |  MTTR: 1.3s
+<figure style="margin: 1.5rem 0;">
+<img src="assets/ph-output/gallery-6-stress.png" alt="Stress test results at different chaos levels" style="width: 100%; border-radius: 8px;">
+</figure>
 
-RECOMMENDATIONS
-  1. Recovery rate is 85.0% — improve retry logic.
-  2. Most frequent fault: tool_failure — focus testing there.
-============================================================
-```
+## Demo
+
+<video controls style="width: 100%; border-radius: 8px; margin: 1.5rem 0;">
+<source src="assets/ph-output/demo-video.mp4" type="video/mp4">
+Your browser does not support the video tag.
+</video>
 
 ## Next steps
 

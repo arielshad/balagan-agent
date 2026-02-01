@@ -67,3 +67,7 @@ reports/
 
 # MkDocs
 site/
+
+ph-assets/node_modules/
+
+.agents/skills/remotion-best-practices/
