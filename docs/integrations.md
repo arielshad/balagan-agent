@@ -43,6 +43,41 @@ wrapper.configure_chaos(enable_hallucinations=True)
 result = wrapper.invoke(input_data)
 ```
 
+## LangGraph
+
+```python
+from langgraph.graph import StateGraph
+from balaganagent.wrappers.langgraph import LangGraphWrapper
+
+# Build and compile your graph
+graph = StateGraph(AgentState)
+# ... add nodes, edges, tool nodes ...
+compiled = graph.compile()
+
+# Add chaos testing (3 lines)
+wrapper = LangGraphWrapper(compiled, chaos_level=0.5)
+wrapper.configure_chaos(enable_tool_failures=True, enable_delays=True)
+result = wrapper.invoke({"messages": [HumanMessage(content="Hello")]})
+
+# Check metrics
+metrics = wrapper.get_metrics()
+print(f"Success rate: {metrics['aggregate']['operations']['success_rate']:.1%}")
+```
+
+### Node-Level Chaos (LangGraph-specific)
+
+```python
+from balaganagent.injectors import DelayInjector
+from balaganagent.injectors.delay import DelayConfig
+
+# Wrap specific nodes for chaos injection
+wrapper.wrap_node("tool_executor")
+wrapper.add_injector(
+    DelayInjector(DelayConfig(probability=0.5, min_delay_ms=100, max_delay_ms=500)),
+    nodes=["tool_executor"],
+)
+```
+
 ## Claude Agent SDK
 
 ```python
@@ -83,6 +118,7 @@ pip install balagan-agent[crewai]
 pip install balagan-agent[autogen]
 pip install balagan-agent[langchain]
 pip install balagan-agent[claude-agent-sdk]
+pip install balagan-agent[langgraph]
 
 # All wrappers
 pip install balagan-agent[all-wrappers]

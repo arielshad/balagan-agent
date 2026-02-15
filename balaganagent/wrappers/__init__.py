@@ -11,6 +11,11 @@ from .langchain import (
     LangChainChainWrapper,
     LangChainToolProxy,
 )
+from .langgraph import (
+    LangGraphNodeProxy,
+    LangGraphToolProxy,
+    LangGraphWrapper,
+)
 
 __all__ = [
     "CrewAIWrapper",
@@ -26,4 +31,7 @@ __all__ = [
     "LangChainToolProxy",
     "LangChainChainWrapper",
     "ChaosCallbackHandler",
+    "LangGraphWrapper",
+    "LangGraphToolProxy",
+    "LangGraphNodeProxy",
 ]

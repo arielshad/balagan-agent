@@ -9,6 +9,7 @@
 - :white_check_mark: Multi-format reporting (terminal, JSON, Markdown, HTML)
 - :white_check_mark: CLI (`balaganagent` command)
 - :white_check_mark: Comprehensive test suite (unit, integration, BDD, E2E)
+- :white_check_mark: LangGraph wrapper with node-level chaos injection
 
 ## Coming Soon
 
@@ -16,7 +17,7 @@
 - :arrows_counterclockwise: Advanced metrics (latency percentiles, error budgets)
 - :arrows_counterclockwise: Chaos schedules and campaigns
 - :arrows_counterclockwise: Web dashboard for visualization
-- :arrows_counterclockwise: More framework integrations (LangGraph, AutoGPT)
+- :arrows_counterclockwise: More framework integrations (AutoGPT)
 
 ## Future
 
