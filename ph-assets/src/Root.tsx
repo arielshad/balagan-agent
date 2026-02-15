@@ -18,11 +18,11 @@ export const RemotionRoot: React.FC = () => {
       <Still id="gallery-5-code" component={SlideCode} width={1270} height={760} />
       <Still id="gallery-6-stress" component={SlideStress} width={1270} height={760} />
 
-      {/* Demo video: 15fps × 30s = 450 frames */}
+      {/* Demo video: 15fps × 40s = 600 frames */}
       <Composition
         id="demo-video"
         component={DemoVideo}
-        durationInFrames={450}
+        durationInFrames={600}
         fps={15}
         width={1270}
         height={760}
