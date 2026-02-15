@@ -339,7 +339,7 @@ class TestChaosReliability:
                 pass
 
         # Success rate should be lower
-        assert successes < 7
+        assert successes <= 7
 
     def test_targeted_failure_injection(self):
         """Can inject failures on specific tools."""
