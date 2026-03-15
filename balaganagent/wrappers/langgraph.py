@@ -21,6 +21,7 @@ Example usage:
     result = wrapper.invoke({"messages": [HumanMessage(content="Hello")]})
 """
 
+import copy
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -64,6 +65,135 @@ class LangGraphToolCall:
     @property
     def success(self) -> bool:
         return self.error is None
+
+
+@dataclass
+class StateSnapshot:
+    """Snapshot of state before and after chaos injection.
+
+    Captures the complete state object at two points in time to enable
+    analysis of what state mutations chaos injection caused.
+
+    Attributes:
+        timestamp: Unix timestamp when snapshot was created (float, seconds)
+        node_name: Name of the node where state was captured
+        state_before: Deep copy of state before chaos injection
+        state_after: Deep copy of state after chaos injection
+        fault_injected: Type of fault injected (e.g., "delay", "context_corruption")
+        target_fields: List of state field names targeted for corruption, if any
+    """
+
+    timestamp: float
+    node_name: str
+    state_before: Any
+    state_after: Any
+    fault_injected: Optional[str] = None
+    target_fields: Optional[list[str]] = None
+
+    def __post_init__(self):
+        """Create deep copies of state objects for isolation."""
+        # Make deep copies to ensure snapshot independence
+        if self.state_before is not None:
+            object.__setattr__(self, "state_before", copy.deepcopy(self.state_before))
+        if self.state_after is not None:
+            object.__setattr__(self, "state_after", copy.deepcopy(self.state_after))
+
+    def __hash__(self) -> int:
+        """Make snapshot hashable using timestamp and node_name."""
+        return hash((self.timestamp, self.node_name))
+
+    def __repr__(self) -> str:
+        """Return developer-friendly representation with state sizes."""
+        state_before_size = len(str(self.state_before)) if self.state_before else 0
+        state_after_size = len(str(self.state_after)) if self.state_after else 0
+        return (
+            f"StateSnapshot(node={self.node_name}, "
+            f"fault={self.fault_injected}, "
+            f"before_size={state_before_size}B, "
+            f"after_size={state_after_size}B)"
+        )
+
+
+class StateSnapshotManager:
+    """Manages state snapshots captured during node execution with chaos injection.
+
+    Provides collection and query capabilities for state snapshots, enabling
+    post-execution analysis of state mutations caused by chaos injection.
+    Thread-safe for concurrent node execution scenarios.
+    """
+
+    def __init__(self):
+        """Initialize snapshot manager."""
+        self._snapshots: list[StateSnapshot] = []
+
+    def add_snapshot(self, snapshot: StateSnapshot) -> None:
+        """Add a state snapshot to the collection.
+
+        Args:
+            snapshot: StateSnapshot object to store
+        """
+        self._snapshots.append(snapshot)
+
+    def get_snapshots_for_node(self, node_name: str) -> list[StateSnapshot]:
+        """Get all snapshots for a specific node.
+
+        Args:
+            node_name: Name of the node to filter by
+
+        Returns:
+            List of StateSnapshot objects for the specified node
+        """
+        return [s for s in self._snapshots if s.node_name == node_name]
+
+    def get_snapshots_by_fault(self, fault_type: str) -> list[StateSnapshot]:
+        """Get all snapshots with a specific fault type.
+
+        Args:
+            fault_type: Fault type to filter by (e.g., "delay", "context_corruption")
+
+        Returns:
+            List of StateSnapshot objects with the specified fault type
+        """
+        return [s for s in self._snapshots if s.fault_injected == fault_type]
+
+    def get_snapshots_in_time_range(
+        self, start_time: float, end_time: float
+    ) -> list[StateSnapshot]:
+        """Get snapshots within a time range.
+
+        Args:
+            start_time: Start timestamp (inclusive)
+            end_time: End timestamp (inclusive)
+
+        Returns:
+            List of StateSnapshot objects within the time range
+        """
+        return [
+            s for s in self._snapshots if start_time <= s.timestamp <= end_time
+        ]
+
+    def clear_snapshots(self) -> None:
+        """Clear all stored snapshots.
+
+        Useful for test isolation and memory management.
+        """
+        self._snapshots.clear()
+
+    def get_all_snapshots(self) -> list[StateSnapshot]:
+        """Get all stored snapshots.
+
+        Returns:
+            Copy of the internal snapshots list
+        """
+        return self._snapshots.copy()
+
+    def get_snapshot_count(self) -> int:
+        """Get the total number of stored snapshots.
+
+        Returns:
+            Number of snapshots in the manager
+        """
+        return len(self._snapshots)
 
 
 @dataclass
@@ -283,6 +413,7 @@ class LangGraphNodeProxy:
         node_name: str,
         chaos_level: float = 0.0,
         verbose: bool = False,
+        snapshot_manager: Optional[StateSnapshotManager] = None,
     ):
         self._func = func
         self._node_name = node_name
@@ -293,6 +424,7 @@ class LangGraphNodeProxy:
         self._injectors: list[BaseInjector] = []
         self._event_history: list[LangGraphNodeEvent] = []
         self._metrics = MetricsCollector()
+        self._snapshot_manager = snapshot_manager or StateSnapshotManager()
 
     @property
     def node_name(self) -> str:
@@ -311,11 +443,14 @@ class LangGraphNodeProxy:
         self._injectors.clear()
 
     def __call__(self, state: Any) -> Any:
-        """Execute the node function with chaos injection."""
+        """Execute the node function with chaos injection and state snapshots."""
         event = LangGraphNodeEvent(
             node_name=self._node_name,
             start_time=time.time(),
         )
+
+        # Capture state snapshot before any chaos injection
+        snapshot_timestamp = time.time()
 
         # Check injectors before execution
         for injector in self._injectors:
@@ -332,6 +467,20 @@ class LangGraphNodeProxy:
                     self._node_name,
                     {"node_name": self._node_name, "state": state},
                 )
+
+                # Capture snapshot after chaos injection
+                # state is still the original, result is corrupted/modified
+                snapshot = StateSnapshot(
+                    timestamp=snapshot_timestamp,
+                    node_name=self._node_name,
+                    state_before=state,
+                    state_after=result if result is not None else state,
+                    fault_injected=fault_type,
+                    target_fields=getattr(details, "target_fields", None)
+                    if hasattr(details, "target_fields")
+                    else details.get("target_fields"),
+                )
+                self._snapshot_manager.add_snapshot(snapshot)
 
                 # Delay injections add latency but don't block execution —
                 # the delay already happened inside inject() via time.sleep
@@ -388,10 +537,27 @@ class LangGraphNodeProxy:
         """Get node metrics summary."""
         return self._metrics.get_summary()
 
+    def get_state_snapshots(self) -> list[StateSnapshot]:
+        """Get all state snapshots captured during node execution.
+
+        Returns:
+            List of StateSnapshot objects
+        """
+        return self._snapshot_manager.get_all_snapshots()
+
+    def get_snapshot_count(self) -> int:
+        """Get the number of state snapshots captured.
+
+        Returns:
+            Total number of snapshots
+        """
+        return self._snapshot_manager.get_snapshot_count()
+
     def reset(self):
         """Reset node proxy state."""
         self._event_history.clear()
         self._metrics.reset()
+        self._snapshot_manager.clear_snapshots()
 
 
 class LangGraphWrapper:
@@ -425,6 +591,7 @@ class LangGraphWrapper:
         self._injectors: list[BaseInjector] = []
         self._metrics = MetricsCollector()
         self._mttr = MTTRCalculator()
+        self._snapshot_manager = StateSnapshotManager()
         self._invoke_count = 0
 
         self._experiments: list[Experiment] = []
@@ -520,6 +687,7 @@ class LangGraphWrapper:
             node_name=node_name,
             chaos_level=self._chaos_level,
             verbose=self.verbose,
+            snapshot_manager=self._snapshot_manager,
         )
         if injectors:
             for inj in injectors:
@@ -619,6 +787,46 @@ class LangGraphWrapper:
     def get_wrapped_nodes(self) -> dict[str, LangGraphNodeProxy]:
         """Get dictionary of wrapped nodes."""
         return self._node_proxies.copy()
+
+    def get_state_snapshots(self) -> list[StateSnapshot]:
+        """Get all state snapshots captured during execution.
+
+        State snapshots contain before/after state objects for analyzing
+        what mutations chaos injection caused.
+
+        Returns:
+            List of StateSnapshot objects
+        """
+        return self._snapshot_manager.get_all_snapshots()
+
+    def get_snapshots_for_node(self, node_name: str) -> list[StateSnapshot]:
+        """Get state snapshots for a specific node.
+
+        Args:
+            node_name: Name of the node to filter by
+
+        Returns:
+            List of StateSnapshot objects for the specified node
+        """
+        return self._snapshot_manager.get_snapshots_for_node(node_name)
+
+    def get_snapshots_by_fault(self, fault_type: str) -> list[StateSnapshot]:
+        """Get state snapshots by fault type.
+
+        Args:
+            fault_type: Fault type to filter by (e.g., "delay", "context_corruption")
+
+        Returns:
+            List of StateSnapshot objects with the specified fault type
+        """
+        return self._snapshot_manager.get_snapshots_by_fault(fault_type)
+
+    def clear_snapshots(self) -> None:
+        """Clear all stored state snapshots.
+
+        Useful for test isolation and memory management.
+        """
+        self._snapshot_manager.clear_snapshots()
 
     def invoke(self, input_data: dict, config: Optional[dict] = None, **kwargs) -> Any:
         """
@@ -790,6 +998,7 @@ class LangGraphWrapper:
             proxy.reset()
         self._metrics.reset()
         self._mttr.reset()
+        self._snapshot_manager.clear_snapshots()
 
     @contextmanager
     def experiment(self, name: str, **config_kwargs):

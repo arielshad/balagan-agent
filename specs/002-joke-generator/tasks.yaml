@@ -691,7 +691,7 @@ tasks:
     estimatedEffort: '1.5h'
 
   - id: task-5-4
-    phaseId: phase-4-5
+    phaseId: phase-5
     title: 'Integration tests: parallel node execution with concurrent failures'
     description: >
       Test DAG with parallel nodes and concurrent chaos injection.

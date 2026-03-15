@@ -28,6 +28,21 @@ class ContextCorruptionConfig(InjectorConfig):
 
     corruption_types: list[CorruptionType] = field(default_factory=lambda: list(CorruptionType))
 
+    # Field-level targeting for state corruption
+    target_fields: Optional[list[str]] = None  # If set, only corrupt these fields
+    exclude_fields: list[str] = field(
+        default_factory=lambda: [
+            # Exclude internal control flow fields from corruption
+            "_routing",
+            "_internal",
+            "__state__",
+            "__context__",
+            "timestamp",
+            "id",
+            "request_id",
+        ]
+    )
+
     # Truncation settings
     truncation_ratio: float = 0.5  # How much to truncate (0.5 = 50%)
     truncate_from: str = "end"  # "start", "end", "middle", "random"
@@ -282,9 +297,71 @@ class ContextCorruptionInjector(BaseInjector):
 
         return data
 
+    def _should_corrupt_field(self, field_name: str) -> bool:
+        """Check if a field should be corrupted based on targeting rules.
+
+        Respects both include list (target_fields) and exclude list (exclude_fields).
+
+        Args:
+            field_name: Name of the field to check
+
+        Returns:
+            True if field should be corrupted, False otherwise
+        """
+        # Never corrupt excluded fields
+        if field_name in self.config.exclude_fields:
+            return False
+
+        # If target_fields is specified, only corrupt those
+        if self.config.target_fields:
+            return field_name in self.config.target_fields
+
+        # Otherwise, corrupt all non-excluded fields
+        return True
+
+    def _corrupt_dict_fields(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Corrupt specified fields in a dict, respecting field targeting rules.
+
+        Args:
+            data: Dictionary to corrupt
+
+        Returns:
+            Dictionary with targeted fields corrupted
+        """
+        result = data.copy()
+
+        # Determine which fields to corrupt
+        fields_to_corrupt = [k for k in result.keys() if self._should_corrupt_field(k)]
+
+        # Corrupt only the targeted fields
+        for field_name in fields_to_corrupt:
+            corruption_type = self._select_corruption_type()
+            corrupt_func = {
+                CorruptionType.TRUNCATION: self._truncate,
+                CorruptionType.REORDER: self._reorder,
+                CorruptionType.DUPLICATE: self._duplicate,
+                CorruptionType.DROP: self._drop,
+                CorruptionType.INJECT_NOISE: self._inject_noise,
+                CorruptionType.CORRUPT_ENCODING: self._corrupt_encoding,
+                CorruptionType.STALE_DATA: self._inject_stale_data,
+                CorruptionType.CIRCULAR_REFERENCE: self._create_circular_reference,
+                CorruptionType.OVERFLOW: self._overflow_context,
+            }.get(corruption_type, self._truncate)
+
+            result[field_name] = corrupt_func(result[field_name])
+
+        return result
+
     def inject(self, target: str, context: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
-        """Inject context corruption."""
-        corruption_type = self._select_corruption_type()
+        """Inject context corruption with optional field-level targeting.
+
+        Args:
+            target: Target name (tool or node)
+            context: Context dict containing data to corrupt
+
+        Returns:
+            Tuple of (corrupted_data, details_dict)
+        """
         original_data = context.get("data", context.get("context", context))
 
         # Deep copy to avoid modifying original
@@ -302,14 +379,21 @@ class ContextCorruptionInjector(BaseInjector):
             CorruptionType.OVERFLOW: self._overflow_context,
         }
 
-        corrupt_func = corruption_map.get(corruption_type, self._truncate)
-        corrupted_data = corrupt_func(data)
+        # Apply field-level targeting if data is a dict
+        if isinstance(data, dict) and self.config.target_fields:
+            corrupted_data = self._corrupt_dict_fields(data)
+        else:
+            # Fall back to whole-object corruption
+            corruption_type = self._select_corruption_type()
+            corrupt_func = corruption_map.get(corruption_type, self._truncate)
+            corrupted_data = corrupt_func(data)
 
         details = {
-            "corruption_type": corruption_type.value,
+            "corruption_type": "field_level" if (isinstance(data, dict) and self.config.target_fields) else "whole_object",
             "tool_name": target,
             "original_size": len(str(original_data)),
             "corrupted_size": len(str(corrupted_data)),
+            "target_fields": self.config.target_fields,
         }
 
         self.record_injection(target, details)
