@@ -1,0 +1,1025 @@
+# Task Breakdown (YAML)
+# Concrete implementation tasks with TDD cycles
+
+name: joke-generator
+summary: >
+  26 implementation tasks across 5 phases. Core focus: state snapshots + field-level corruption (Phase 1),
+  metrics enhancement + edge timing (Phase 2), dynamic node selection (Phase 3), async/concurrent execution
+  (Phase 4), and comprehensive testing + documentation (Phase 5). Estimated total effort: 40 hours.
+
+relatedFeatures: []
+technologies: []
+relatedLinks: []
+
+tasks:
+  # PHASE 1: State Management & Field-Level Corruption
+
+  - id: task-1-1
+    phaseId: phase-1
+    title: 'Define StateSnapshot dataclass with deep copy semantics'
+    description: >
+      Create StateSnapshot dataclass to model state before/after chaos injection events.
+      Dataclass should include timestamp, node_name, state_before, state_after (deep copies),
+      fault_injected type, and target fields. This is the foundational data structure for
+      understanding state mutations caused by chaos injection.
+    state: Todo
+    dependencies: []
+    acceptanceCriteria:
+      - 'StateSnapshot dataclass exists with all required fields'
+      - 'state_before and state_after are deep copies (copy.deepcopy)'
+      - 'StateSnapshot has timestamp property (float, nanoseconds or seconds)'
+      - 'StateSnapshot is hashable and can be stored in sets/dicts'
+      - 'StateSnapshot has __repr__ for debugging'
+    tdd:
+      red:
+        - 'Write test: assert StateSnapshot can be created with all fields'
+        - 'Write test: assert state_before/after are deep copies (modifications to copy don''t affect original)'
+        - 'Write test: assert timestamp is recorded at creation'
+      green:
+        - 'Implement StateSnapshot dataclass with @dataclass decorator'
+        - 'Use copy.deepcopy() for state_before and state_after'
+        - 'Use time.time() or time.time_ns() for timestamp'
+      refactor:
+        - 'Add property accessors for common queries (e.g., changed_fields property)'
+        - 'Optimize repr for readability with state size summary'
+    estimatedEffort: '1.5h'
+
+  - id: task-1-2
+    phaseId: phase-1
+    title: 'Create StateSnapshotManager in LangGraphWrapper'
+    description: >
+      Add state snapshot collection and retrieval to LangGraphWrapper.
+      Manager tracks all snapshots per node execution and provides query API
+      (by node name, by timestamp range, by fault type). This enables post-execution analysis
+      of what state corruption actually occurred.
+    state: Todo
+    dependencies:
+      - task-1-1
+    acceptanceCriteria:
+      - 'StateSnapshotManager stores snapshots in ordered list (thread-safe)'
+      - 'get_snapshots_for_node(node_name) returns relevant snapshots'
+      - 'get_snapshots_by_fault(fault_type) returns snapshots with that fault'
+      - 'get_snapshots_in_time_range(start, end) filters by timestamp'
+      - 'clear_snapshots() resets collection (for test isolation)'
+    tdd:
+      red:
+        - 'Write test: assert snapshot added via add_snapshot() is retrievable'
+        - 'Write test: assert get_snapshots_for_node filters correctly'
+        - 'Write test: assert thread-safe adding from concurrent threads'
+      green:
+        - 'Implement StateSnapshotManager with list storage and Lock for thread safety'
+        - 'Implement filter methods using list comprehensions'
+      refactor:
+        - 'Extract filtering logic to reusable methods'
+        - 'Add type hints for all filter parameters'
+    estimatedEffort: '1.5h'
+
+  - id: task-1-3
+    phaseId: phase-1
+    title: 'Add field-level targeting to ContextCorruptionInjector'
+    description: >
+      Extend ContextCorruptionInjector to support target_fields parameter.
+      When target_fields is specified, only corrupt those fields in the state.
+      Validate field names against state schema and skip internal control flow fields.
+      This enables precise state corruption for debugging specific failure modes.
+    state: Todo
+    dependencies:
+      - task-1-1
+    acceptanceCriteria:
+      - 'ContextCorruptionInjector accepts target_fields parameter'
+      - 'Injection only corrupts specified fields (verify via deep copy comparison)'
+      - 'Control flow fields (marked with exclude_from_corruption=True) are never corrupted'
+      - 'Invalid field names raise ValidationError with helpful message'
+      - 'target_fields=None corrupts all corruptible fields (backward compatible)'
+    tdd:
+      red:
+        - 'Write test: inject with target_fields=["messages"], verify only messages corrupted'
+        - 'Write test: inject with invalid field name, expect ValidationError'
+        - 'Write test: inject with control flow field, verify it''s skipped'
+      green:
+        - 'Add target_fields parameter to ContextCorruptionInjector.__init__'
+        - 'Modify inject() to filter fields before corruption'
+        - 'Use copy.deepcopy and field comparison to verify mutations'
+      refactor:
+        - 'Extract field validation to separate method'
+        - 'Create helper for identifying corruptible fields'
+    estimatedEffort: '2h'
+
+  - id: task-1-4
+    phaseId: phase-1
+    title: 'Update LangGraphNodeProxy to capture state snapshots'
+    description: >
+      Modify LangGraphNodeProxy to capture before/after state snapshots when chaos is injected.
+      Snapshots are stored via StateSnapshotManager. Capture occurs before chaos application
+      and after node execution (whether successful or failed). Snapshots enable post-execution
+      analysis of state mutations.
+    state: Todo
+    dependencies:
+      - task-1-2
+      - task-1-3
+    acceptanceCriteria:
+      - 'StateSnapshot captured before chaos injection'
+      - 'StateSnapshot captured after node execution (success or failure)'
+      - 'Snapshots stored in StateSnapshotManager'
+      - 'Snapshots accessible via wrapper.get_state_snapshots()'
+      - 'No snapshots captured when chaos injection disabled'
+      - 'Performance impact <5% (snapshot overhead minimal)'
+    tdd:
+      red:
+        - 'Write test: node executes with chaos, snapshots captured before and after'
+        - 'Write test: assert snapshot state_before/after match actual state'
+        - 'Write test: assert no snapshots when chaos disabled'
+      green:
+        - 'In node proxy __call__, capture snapshot before/after chaos'
+        - 'Use StateSnapshotManager.add_snapshot() for storage'
+        - 'Pass snapshot manager reference to proxy at init'
+      refactor:
+        - 'Extract snapshot capture logic to separate method for clarity'
+        - 'Add type hints for state parameter'
+    estimatedEffort: '2h'
+
+  - id: task-1-5
+    phaseId: phase-1
+    title: 'Test state snapshot accuracy across multiple execution patterns'
+    description: >
+      Write comprehensive tests validating that state snapshots accurately capture
+      state mutations from chaos injection. Test patterns: single mutation, multiple field corruptions,
+      nested object mutations, list mutations, state size tracking. Ensure snapshots are deep copies
+      and modifications don't affect original state.
+    state: Todo
+    dependencies:
+      - task-1-4
+    acceptanceCriteria:
+      - 'Test: single field corruption captured in snapshot'
+      - 'Test: multiple field corruptions captured'
+      - 'Test: nested object mutations captured'
+      - 'Test: list mutations (append, shuffle, delete) captured'
+      - 'Test: snapshot modifications don''t affect original state'
+      - 'Test: snapshot size metadata accurate'
+    tdd:
+      red:
+        - 'Write parameterized test covering each mutation type'
+        - 'Each test asserts snapshot state_before/after reflect mutations'
+      green:
+        - 'Create test fixture with complex state objects'
+        - 'Run corruption and validate snapshot captures'
+      refactor:
+        - 'Extract state comparison logic to helper functions'
+        - 'Organize tests by mutation type'
+    estimatedEffort: '1.5h'
+
+  # PHASE 2: Metrics Enhancement & Edge Timing
+
+  - id: task-2-1
+    phaseId: phase-2
+    title: 'Add edge-level metrics to MetricsCollector'
+    description: >
+      Extend MetricsCollector to track edge traversal timing between nodes.
+      New metrics: edge_id (source->target), traversal_start, traversal_end, delay_ms,
+      state_mutation_size. Edges are transitions in the graph; timing them reveals control flow
+      anomalies caused by chaos injection. This complements node-level timing from Phase 1.
+    state: Todo
+    dependencies:
+      - task-1-4
+    acceptanceCriteria:
+      - 'MetricsCollector tracks edge traversal events'
+      - 'Edge events have: source, target, start_time, end_time'
+      - 'Edge delay calculated as end_time - start_time'
+      - 'State mutation size recorded (bytes changed between nodes)'
+      - 'get_edge_metrics() returns edge traversal data'
+      - 'Edge metrics correlated with node execution metrics'
+    tdd:
+      red:
+        - 'Write test: record edge traversal, verify timing captured'
+        - 'Write test: calculate state mutation size between node executions'
+        - 'Write test: get_edge_metrics returns expected structure'
+      green:
+        - 'Add edge event recording to MetricsCollector'
+        - 'Implement state_mutation_size calculation via deepdiff or manual comparison'
+      refactor:
+        - 'Extract edge calculation logic to separate method'
+        - 'Consolidate edge and node metric structures'
+    estimatedEffort: '2h'
+
+  - id: task-2-2
+    phaseId: phase-2
+    title: 'Implement node recovery time (MTTR) calculation'
+    description: >
+      Extend metrics collection to track recovery attempts and calculate Mean Time To Recovery (MTTR).
+      MTTR = sum of retry delays + re-execution times. Metrics include: failure_time, first_retry_time,
+      final_recovery_time, retry_count, total_recovery_ms. MTTR analysis reveals system resilience
+      and guides reliability improvements.
+    state: Todo
+    dependencies:
+      - task-2-1
+    acceptanceCriteria:
+      - 'Node failure recorded with timestamp'
+      - 'Each retry tracked (delay, re-execution)'
+      - 'MTTR calculated: sum of delays + execution times'
+      - 'Recovery success/failure recorded'
+      - 'get_mttr_stats(node_name) returns recovery metrics'
+      - 'MTTR works with concurrent retries'
+    tdd:
+      red:
+        - 'Write test: node fails, retry succeeds, MTTR calculated correctly'
+        - 'Write test: multiple retries, MTTR includes all delays'
+        - 'Write test: retry fails, final MTTR recorded with failure flag'
+      green:
+        - 'Track failure_time, retry_times, recovery_time in metrics'
+        - 'Implement MTTR calculation in MTTRCalculator'
+      refactor:
+        - 'Extract MTTR logic to dedicated method'
+        - 'Add type hints for timing values'
+    estimatedEffort: '2h'
+
+  - id: task-2-3
+    phaseId: phase-2
+    title: 'Add node execution timing hooks to node proxies'
+    description: >
+      Integrate node execution timing into existing node proxy classes.
+      Track: node_start (when execution begins), node_end (when execution completes),
+      duration_ms. Use high-resolution timing (time.perf_counter()) for accuracy.
+      Separate sync and async timing implementations for correctness.
+    state: Todo
+    dependencies:
+      - task-2-1
+    acceptanceCriteria:
+      - 'Node execution timing captured (start, end, duration)'
+      - 'Sync and async nodes use appropriate timing methods'
+      - 'Timing includes fault injection overhead'
+      - 'get_node_metrics(node_name) includes timing'
+      - 'Timing resolution sufficient for sub-millisecond operations'
+    tdd:
+      red:
+        - 'Write test: node execution timed, duration captured'
+        - 'Write test: async node timing accurate (compare with known delay)'
+      green:
+        - 'Wrap node execution with time.perf_counter()'
+        - 'Store timing in metrics event'
+      refactor:
+        - 'Extract timing logic to utility function'
+        - 'Separate sync/async timing implementations'
+    estimatedEffort: '1.5h'
+
+  - id: task-2-4
+    phaseId: phase-2
+    title: 'Implement state consistency checking in metrics'
+    description: >
+      Add validation to detect unexpected state mutations caused by chaos injection.
+      Check: state schema preserved (no new/missing fields), field types unchanged,
+      collection sizes reasonable (no explosion). Violations are flagged in metrics
+      for debugging. This helps identify when state corruption breaks graph invariants.
+    state: Todo
+    dependencies:
+      - task-2-3
+    acceptanceCriteria:
+      - 'State schema validation (fields, types)'
+      - 'Collection size reasonableness checks'
+      - 'Consistency violations logged in metrics'
+      - 'get_consistency_violations() returns list'
+      - 'Violations don''t block execution (observability only)'
+    tdd:
+      red:
+        - 'Write test: state mutation, consistency check passes'
+        - 'Write test: invalid mutation (extra field), violation detected'
+      green:
+        - 'Implement schema validation against original state'
+        - 'Add size reasonableness heuristics'
+      refactor:
+        - 'Extract validation rules to configuration'
+        - 'Consolidate check methods'
+    estimatedEffort: '1.5h'
+
+  - id: task-2-5
+    phaseId: phase-2
+    title: 'Write integration tests for multi-node metric collection'
+    description: >
+      Test metrics collection across multi-node DAG execution.
+      Validate: node timings correlated with edges, MTTR calculations in multi-node scenarios,
+      state consistency across transitions, concurrent node metric collection.
+      Ensures Phase 2 metrics work correctly in realistic multi-node graphs.
+    state: Todo
+    dependencies:
+      - task-2-4
+    acceptanceCriteria:
+      - 'Test: 3-node linear DAG, all timings captured'
+      - 'Test: edge timing between nodes correct'
+      - 'Test: MTTR for failed node in middle of DAG'
+      - 'Test: state consistency maintained across nodes'
+      - 'Test: concurrent node execution metrics aggregated correctly'
+    tdd:
+      red:
+        - 'Write test with 3-node DAG, assert metrics for all nodes'
+        - 'Write test with node failure/recovery, assert MTTR'
+      green:
+        - 'Create test DAG fixture'
+        - 'Execute and validate metrics'
+      refactor:
+        - 'Extract DAG creation to reusable fixture'
+        - 'Organize tests by scenario'
+    estimatedEffort: '2h'
+
+  # PHASE 3: Node Selection & Dynamic Control
+
+  - id: task-3-1
+    phaseId: phase-3
+    title: 'Add regex pattern matching to node selection'
+    description: >
+      Extend wrap_node() to support regex patterns for targeting multiple nodes.
+      Pattern is compiled once at wrapper init and cached for O(1) matching at execution.
+      Example: wrap_node("^tool_.*", is_regex=True) targets all tool nodes.
+      Validation ensures pattern matches at least one node.
+    state: Todo
+    dependencies: []
+    acceptanceCriteria:
+      - 'wrap_node() accepts is_regex parameter'
+      - 'Regex patterns compiled once at init'
+      - 'Pattern matches validated against node names'
+      - 'Error if pattern matches no nodes'
+      - 'Matching case-sensitive by default'
+    tdd:
+      red:
+        - 'Write test: wrap_node with regex pattern, targeting works'
+        - 'Write test: invalid regex raises error'
+        - 'Write test: pattern matches no nodes, error'
+      green:
+        - 'Add is_regex parameter to wrap_node()'
+        - 'Use re.compile() for pattern, cache in dict'
+        - 'Validate matches at wrapper init'
+      refactor:
+        - 'Extract pattern compilation to separate method'
+        - 'Add pattern caching utility'
+    estimatedEffort: '1.5h'
+
+  - id: task-3-2
+    phaseId: phase-3
+    title: 'Implement tag-based node selection'
+    description: >
+      Add support for tag-based targeting of nodes via wrap_node(tags=[...]).
+      Tags are node metadata specified at graph definition time.
+      Example: wrap_node(tags=["external_api"]) targets all nodes tagged as external.
+      Useful for targeting entire categories of nodes (all LLM calls, all DB queries, etc).
+    state: Todo
+    dependencies: []
+    acceptanceCriteria:
+      - 'wrap_node() accepts tags parameter'
+      - 'Tags matched against node metadata'
+      - 'Multiple tags use AND logic (all must match)'
+      - 'Error if no nodes match tags'
+      - 'Tags optional (can use name or regex alone)'
+    tdd:
+      red:
+        - 'Write test: wrap_node with tags, targeting works'
+        - 'Write test: multiple tags, AND logic'
+        - 'Write test: no nodes with tag, error'
+      green:
+        - 'Add tags parameter to wrap_node()'
+        - 'Extract tags from node metadata'
+        - 'Filter nodes matching all tags'
+      refactor:
+        - 'Extract tag matching logic'
+        - 'Consolidate selection methods'
+    estimatedEffort: '1.5h'
+
+  - id: task-3-3
+    phaseId: phase-3
+    title: 'Add node selection validation and error messages'
+    description: >
+      Enhance node selection with validation and helpful error messages.
+      When selection matches no nodes, show: available nodes, why pattern didn't match,
+      suggestions for correction. This improves usability when targeting nodes.
+    state: Todo
+    dependencies:
+      - task-3-1
+      - task-3-2
+    acceptanceCriteria:
+      - 'Error message lists available nodes when selection fails'
+      - 'Error explains why pattern/tag didn''t match'
+      - 'Suggestions for correction provided'
+      - 'Documentation shows common patterns'
+    tdd:
+      red:
+        - 'Write test: invalid pattern, error includes node list'
+        - 'Write test: error message helpful'
+      green:
+        - 'Collect available nodes at wrapper init'
+        - 'Format helpful error message with node names'
+      refactor:
+        - 'Extract error message formatting'
+        - 'Add documentation examples'
+    estimatedEffort: '1h'
+
+  - id: task-3-4
+    phaseId: phase-3
+    title: 'Write integration tests for dynamic node selection'
+    description: >
+      Test node selection across different graph topologies.
+      Validate: name matching, regex patterns, tag-based selection all work correctly.
+      Test edge cases: empty selection, overlapping patterns, tag combinations.
+      Ensures Phase 3 selection works reliably in practice.
+    state: Todo
+    dependencies:
+      - task-3-3
+    acceptanceCriteria:
+      - 'Test: exact name matching'
+      - 'Test: regex pattern matching (simple and complex)'
+      - 'Test: tag-based selection'
+      - 'Test: combined selections'
+      - 'Test: selection edge cases'
+    tdd:
+      red:
+        - 'Write parameterized test for each selection mode'
+      green:
+        - 'Create test graphs with named, tagged nodes'
+        - 'Validate selection results'
+      refactor:
+        - 'Organize tests by selection type'
+        - 'Extract test fixture graphs'
+    estimatedEffort: '1.5h'
+
+  # PHASE 4: Async Support & Concurrent Execution
+
+  - id: task-4-1
+    phaseId: phase-4
+    title: 'Create LangGraphNodeProxyAsync for async node functions'
+    description: >
+      Implement separate proxy class for async node functions.
+      Maintains proper async context and timing accuracy.
+      Supports async fault injection where needed (e.g., async delays).
+      Mirrors LangGraphNodeProxy API but operates in async context.
+    state: Todo
+    dependencies:
+      - task-1-4
+    acceptanceCriteria:
+      - 'LangGraphNodeProxyAsync class exists'
+      - 'Supports async def __call__(state) -> Any'
+      - 'Captures state snapshots (async-safe)'
+      - 'Uses asyncio timing (not threading timing)'
+      - 'Works with asyncio event loops'
+    tdd:
+      red:
+        - 'Write test: async node wrapped, executes correctly'
+        - 'Write test: state snapshots captured (async)'
+        - 'Write test: timing accurate for async'
+      green:
+        - 'Implement LangGraphNodeProxyAsync as async class'
+        - 'Use asyncio-compatible timing'
+      refactor:
+        - 'Extract common proxy logic to base class or mixin'
+        - 'Minimize duplication with sync proxy'
+    estimatedEffort: '2h'
+
+  - id: task-4-2
+    phaseId: phase-4
+    title: 'Update wrapper to detect and wrap async nodes'
+    description: >
+      Modify LangGraphWrapper.wrap_node() to detect async functions.
+      Use inspect.iscoroutinefunction() to identify async nodes.
+      Wrap with appropriate proxy (sync or async). Transparent to caller.
+    state: Todo
+    dependencies:
+      - task-4-1
+    acceptanceCriteria:
+      - 'Async nodes detected via inspect.iscoroutinefunction'
+      - 'Wrapped with LangGraphNodeProxyAsync'
+      - 'Sync nodes continue using LangGraphNodeProxy'
+      - 'No API changes to wrap_node()'
+    tdd:
+      red:
+        - 'Write test: sync node detected, wrapped correctly'
+        - 'Write test: async node detected, wrapped correctly'
+      green:
+        - 'Add async detection in wrap_node()'
+        - 'Select appropriate proxy class'
+      refactor:
+        - 'Extract proxy selection logic'
+    estimatedEffort: '1h'
+
+  - id: task-4-3
+    phaseId: phase-4
+    title: 'Add thread-safe locking to MetricsCollector'
+    description: >
+      Protect metric writes in MetricsCollector with threading.RLock.
+      Enable concurrent node execution without race conditions.
+      Lock only on metric operations, not on node execution (minimize contention).
+    state: Todo
+    dependencies:
+      - task-2-1
+    acceptanceCriteria:
+      - 'MetricsCollector has threading.RLock'
+      - 'All metric writes protected by lock'
+      - 'Lock acquired/released correctly (no deadlocks)'
+      - 'Concurrent metric access safe'
+    tdd:
+      red:
+        - 'Write test: add metrics from concurrent threads, all captured'
+        - 'Write test: query metrics while writing, no errors'
+      green:
+        - 'Add RLock to MetricsCollector.__init__'
+        - 'Wrap metric operations with lock'
+      refactor:
+        - 'Extract locking logic to context manager'
+        - 'Document lock scope'
+    estimatedEffort: '1.5h'
+
+  - id: task-4-4
+    phaseId: phase-4
+    title: 'Implement timestamp-based correlation for concurrent nodes'
+    description: >
+      Add nanosecond-precision timestamps (time.time_ns()) to metrics.
+      Implement concurrent operation detection: operations with overlapping timestamps are concurrent.
+      Aggregate concurrent metrics using time windows (e.g., 100ms windows).
+      Enable analysis of concurrent failure patterns and cascade detection.
+    state: Todo
+    dependencies:
+      - task-4-3
+    acceptanceCriteria:
+      - 'Metrics use nanosecond timestamps (time.time_ns())'
+      - 'Concurrent operations detected via timestamp overlap'
+      - 'Time window aggregation (configurable, default 100ms)'
+      - 'get_concurrent_operations() returns grouped metrics'
+    tdd:
+      red:
+        - 'Write test: two nodes execute concurrently, flagged as concurrent'
+        - 'Write test: time window aggregation works'
+      green:
+        - 'Add ns timestamps to metrics'
+        - 'Implement overlap detection'
+        - 'Implement window aggregation'
+      refactor:
+        - 'Extract concurrency detection to utility'
+        - 'Consolidate aggregation methods'
+    estimatedEffort: '2h'
+
+  - id: task-4-5
+    phaseId: phase-4
+    title: 'Test async execution with state snapshots and metrics'
+    description: >
+      Integration tests for async nodes with chaos injection.
+      Validate: state snapshots captured correctly, metrics timed accurately,
+      MTTR calculation works for async recovery. Tests with astream() and ainvoke().
+    state: Todo
+    dependencies:
+      - task-4-4
+    acceptanceCriteria:
+      - 'Test: async node execution with state snapshots'
+      - 'Test: async node timing accurate'
+      - 'Test: async MTTR calculation for recovery'
+      - 'Test: concurrent async nodes, metrics aggregated'
+    tdd:
+      red:
+        - 'Write async test: node with chaos, snapshots captured'
+        - 'Write async test: timing consistent with known delays'
+      green:
+        - 'Create async test fixtures'
+        - 'Execute and validate'
+      refactor:
+        - 'Extract async test fixtures'
+        - 'Consolidate async tests'
+    estimatedEffort: '2h'
+
+  - id: task-4-6
+    phaseId: phase-4
+    title: 'Test concurrent node execution without race conditions'
+    description: >
+      Stress test concurrent node execution with chaos injection.
+      Validate: metrics collected safely, no lost events, state snapshots accurate.
+      Tests with ThreadPoolExecutor simulating parallel nodes. Benchmark lock contention.
+    state: Todo
+    dependencies:
+      - task-4-5
+    acceptanceCriteria:
+      - 'Test: 10 nodes concurrent, all metrics captured'
+      - 'Test: no race conditions in snapshot capture'
+      - 'Test: lock contention minimal (<1% overhead)'
+      - 'Test: concurrent failures tracked correctly'
+    tdd:
+      red:
+        - 'Write test: 10 concurrent nodes, verify all metrics'
+        - 'Write test: concurrent snapshots don''t corrupt state'
+      green:
+        - 'Create concurrent test fixture'
+        - 'Validate metrics completeness'
+      refactor:
+        - 'Extract concurrency testing utilities'
+        - 'Benchmark and document lock overhead'
+    estimatedEffort: '2h'
+
+  # PHASE 5: Testing, Integration & Documentation
+
+  - id: task-5-1
+    phaseId: phase-5
+    title: 'Unit tests for field-level state corruption'
+    description: >
+      Comprehensive unit tests for ContextCorruptionInjector field-level targeting.
+      Test: single field corruption, multiple fields, nested objects, lists, exclusions.
+      Validate corruption accuracy and that unrelated fields are unchanged.
+    state: Todo
+    dependencies:
+      - task-1-3
+    acceptanceCriteria:
+      - 'Test: corrupt single field, verify only that field changed'
+      - 'Test: corrupt multiple fields simultaneously'
+      - 'Test: nested object corruption'
+      - 'Test: list mutation (append, shuffle, delete)'
+      - 'Test: excluded fields unchanged'
+      - 'Code coverage >95% for corruption logic'
+    tdd:
+      red:
+        - 'Write parameterized tests for each field type'
+      green:
+        - 'Create corruption test fixtures'
+        - 'Validate mutations'
+      refactor:
+        - 'Extract test fixtures to separate module'
+        - 'Organize by field type'
+    estimatedEffort: '2h'
+
+  - id: task-5-2
+    phaseId: phase-5
+    title: 'Unit tests for retry logic and MTTR calculation'
+    description: >
+      Test node retry mechanism and MTTR calculations.
+      Test: single retry, multiple retries, exponential backoff, max retries exceeded,
+      recovery success/failure, MTTR accuracy.
+    state: Todo
+    dependencies:
+      - task-2-2
+    acceptanceCriteria:
+      - 'Test: node fails, retries, succeeds (MTTR calculated)'
+      - 'Test: exponential backoff delays correct'
+      - 'Test: max retries exceeded, failure recorded'
+      - 'Test: MTTR includes all delays'
+      - 'Code coverage >95% for retry logic'
+    tdd:
+      red:
+        - 'Write test: failure -> retry -> success'
+        - 'Write test: MTTR calculation accuracy'
+      green:
+        - 'Mock failure injection'
+        - 'Verify retry and MTTR'
+      refactor:
+        - 'Extract retry fixtures'
+        - 'Consolidate MTTR tests'
+    estimatedEffort: '1.5h'
+
+  - id: task-5-3
+    phaseId: phase-5
+    title: 'Integration tests: linear DAG with chaos injection'
+    description: >
+      Test linear 3-5 node DAG with chaos injection in different nodes.
+      Validate: state flows correctly between nodes, metrics correlated,
+      MTTR for failed node in middle of graph, state snapshots accurate.
+    state: Todo
+    dependencies:
+      - task-2-5
+    acceptanceCriteria:
+      - 'Test: 3-node linear DAG, inject in node 1'
+      - 'Test: inject in node 2 (middle)'
+      - 'Test: inject in node 3 (end)'
+      - 'Test: state corruption propagates correctly'
+      - 'Test: recovery time for middle node accurate'
+    tdd:
+      red:
+        - 'Write test: linear DAG, chaos in node 1'
+        - 'Write test: verify state flow'
+      green:
+        - 'Create linear DAG fixture'
+        - 'Run with chaos, validate results'
+      refactor:
+        - 'Extract DAG fixture to reusable component'
+    estimatedEffort: '1.5h'
+
+  - id: task-5-4
+    phaseId: phase-4-5
+    title: 'Integration tests: parallel node execution with concurrent failures'
+    description: >
+      Test DAG with parallel nodes and concurrent chaos injection.
+      Validate: concurrent nodes execute independently, concurrent failures don't interfere,
+      metrics correctly track concurrency, MTTR for concurrent retries.
+    state: Todo
+    dependencies:
+      - task-4-6
+    acceptanceCriteria:
+      - 'Test: DAG with parallel nodes'
+      - 'Test: inject chaos in multiple parallel nodes'
+      - 'Test: concurrent failures don''t cascade'
+      - 'Test: metrics show concurrent execution'
+      - 'Test: all nodes recover correctly'
+    tdd:
+      red:
+        - 'Write test: DAG with fork/join, chaos in both paths'
+      green:
+        - 'Create parallel DAG fixture'
+        - 'Run and validate'
+      refactor:
+        - 'Extract parallel DAG patterns'
+    estimatedEffort: '2h'
+
+  - id: task-5-5
+    phaseId: phase-5
+    title: 'Integration tests: cyclic graphs with loop detection'
+    description: >
+      Test DAG with cycles (agent loops, retry loops) and chaos injection.
+      Validate: loops execute correctly, max_depth prevents infinite loops,
+      chaos doesn't break loop termination, depth tracking accurate.
+    state: Todo
+    dependencies:
+      - task-5-4
+    acceptanceCriteria:
+      - 'Test: simple loop (A -> B -> A) executes correctly'
+      - 'Test: loop terminates with max_depth limit'
+      - 'Test: chaos doesn''t break termination'
+      - 'Test: depth tracking in metrics'
+    tdd:
+      red:
+        - 'Write test: cyclic graph, normal execution'
+        - 'Write test: max_depth prevents infinite loop'
+      green:
+        - 'Create cyclic DAG fixture'
+        - 'Test with depth limits'
+      refactor:
+        - 'Extract cycle detection logic'
+    estimatedEffort: '1.5h'
+
+  - id: task-5-6
+    phaseId: phase-5
+    title: 'Property-based tests for reproducibility with seed'
+    description: >
+      Use hypothesis or parametrized tests to verify reproducibility.
+      Same random seed should produce identical state corruption and chaos injection patterns.
+      Tests state snapshot equality, chaos event determinism.
+    state: Todo
+    dependencies:
+      - task-5-1
+    acceptanceCriteria:
+      - 'Test: execution with seed X produces same results'
+      - 'Test: different seeds produce different corruption'
+      - 'Test: state snapshots identical with same seed'
+    tdd:
+      red:
+        - 'Write test: run with seed X twice, compare metrics'
+      green:
+        - 'Implement seed parameter in wrapper'
+        - 'Validate metric equality'
+      refactor:
+        - 'Extract seed testing utilities'
+    estimatedEffort: '1h'
+
+  - id: task-5-7
+    phaseId: phase-5
+    title: 'Performance tests: baseline overhead <5%'
+    description: >
+      Benchmark wrapper overhead without chaos injection.
+      Measure: node wrapping overhead, metrics collection overhead, state snapshot overhead.
+      Target: <5% overhead compared to unwrapped baseline.
+    state: Todo
+    dependencies:
+      - task-5-2
+    acceptanceCriteria:
+      - 'Baseline overhead (no chaos) <5%'
+      - 'Metrics collection <1% overhead'
+      - 'State snapshots <2% overhead'
+      - 'Benchmark shows breakdown by component'
+    tdd:
+      red:
+        - 'Write benchmark: unwrapped vs wrapped execution'
+      green:
+        - 'Measure timing for each phase'
+        - 'Calculate overhead percentage'
+      refactor:
+        - 'Optimize hot paths if overhead >5%'
+        - 'Document optimization results'
+    estimatedEffort: '2h'
+
+  - id: task-5-8
+    phaseId: phase-5
+    title: 'Coverage tests: achieve >85% code coverage'
+    description: >
+      Run test suite with coverage analysis.
+      Target: >85% line coverage of wrapper code.
+      Identify uncovered paths and write tests or justify exclusions.
+    state: Todo
+    dependencies:
+      - task-5-7
+    acceptanceCriteria:
+      - 'Test coverage >85% overall'
+      - 'Coverage report generated (pytest-cov)'
+      - 'All major code paths covered'
+      - 'Uncovered code documented (if intentional)'
+    tdd:
+      red:
+        - 'Run: pytest --cov=balaganagent.wrappers.langgraph'
+      green:
+        - 'Write tests for uncovered paths'
+      refactor:
+        - 'Consolidate test fixtures'
+        - 'Improve test organization'
+    estimatedEffort: '1.5h'
+
+  - id: task-5-9
+    phaseId: phase-5
+    title: 'Export LangGraphWrapper from balaganagent package'
+    description: >
+      Add LangGraphWrapper export to balaganagent/__init__.py alongside other wrappers.
+      Ensure consistent API surface. Update __all__ list.
+      Make wrapper discoverable to users.
+    state: Todo
+    dependencies:
+      - task-5-1
+    acceptanceCriteria:
+      - 'LangGraphWrapper exported from balaganagent'
+      - '__all__ list updated'
+      - 'Can import: from balaganagent import LangGraphWrapper'
+    tdd:
+      red:
+        - 'Write test: import LangGraphWrapper from balaganagent succeeds'
+      green:
+        - 'Add to __init__.py'
+        - 'Update __all__'
+      refactor:
+        - 'Verify no import errors'
+    estimatedEffort: '0.5h'
+
+  - id: task-5-10
+    phaseId: phase-5
+    title: 'Write LangGraph integration guide and examples'
+    description: >
+      Create docs/integrations/langgraph.md with integration guide.
+      Include: quickstart example, node selection strategies, state corruption scenarios,
+      metrics interpretation, common patterns, troubleshooting.
+      Examples must be runnable (mock agents OK).
+    state: Todo
+    dependencies:
+      - task-5-9
+    acceptanceCriteria:
+      - 'Integration guide exists at docs/integrations/langgraph.md'
+      - 'Quickstart example (minimal working graph)'
+      - 'Node selection examples (name, regex, tags)'
+      - 'State corruption scenario examples'
+      - 'Metrics interpretation guide'
+      - 'All code examples runnable'
+    tdd:
+      red:
+        - 'Write guide skeleton'
+      green:
+        - 'Fill sections with content and examples'
+      refactor:
+        - 'Ensure examples run without errors'
+        - 'Verify documentation clarity'
+    estimatedEffort: '3h'
+
+  - id: task-5-11
+    phaseId: phase-5
+    title: 'Test backward compatibility with existing LangGraph code'
+    description: >
+      Verify wrapper doesn't break existing LangGraph graphs.
+      Test with v0.5.0 examples. Ensure graph behavior unchanged when chaos disabled.
+      Validate API compatibility.
+    state: Todo
+    dependencies:
+      - task-5-10
+    acceptanceCriteria:
+      - 'Test: wrap graph with chaos disabled, output same as unwrapped'
+      - 'Test: all existing v0.5.0 examples work'
+      - 'Test: API backward compatible'
+    tdd:
+      red:
+        - 'Write test: existing example with wrapper, no chaos'
+      green:
+        - 'Run test, verify output matches unwrapped'
+      refactor:
+        - 'Document any breaking changes (if needed)'
+    estimatedEffort: '1h'
+
+  - id: task-5-12
+    phaseId: phase-5
+    title: 'Final validation: all success criteria met'
+    description: >
+      Checklist validation that all feature spec success criteria are satisfied.
+      Verify: node-level chaos injection, field-level corruption, edge timing,
+      state snapshots, automatic retry, dynamic node selection, concurrent execution,
+      all injector types, metrics, test coverage, documentation, exports,
+      backward compatibility, performance <5% overhead.
+    state: Todo
+    dependencies:
+      - task-5-11
+    acceptanceCriteria:
+      - 'All 14 success criteria from spec satisfied'
+      - 'All NFRs met or justified'
+      - 'No open issues blocking release'
+    tdd: null
+    estimatedEffort: '1h'
+
+totalEstimate: '40h'
+
+openQuestions: []
+
+content: |
+  ## Implementation Summary
+
+  This task breakdown encompasses 26 concrete work items organized across 5 phases,
+  totaling ~40 hours of focused development. The phases follow a logical dependency
+  chain: foundational state management → observability → flexibility → modern patterns → validation.
+
+  ### Phase 1: State Management (8 hours, tasks 1-1 to 1-5)
+
+  Establishes the state snapshot and field-level corruption infrastructure that enables
+  precise debugging. Creates StateSnapshot dataclass, StateSnapshotManager for collection,
+  extends ContextCorruptionInjector with field targeting, integrates snapshot capture into
+  node proxies, and validates snapshot accuracy. These tasks are purely foundational —
+  nothing depends on them except downstream phases.
+
+  ### Phase 2: Metrics Enhancement (8 hours, tasks 2-1 to 2-5)
+
+  Extends observability to edge-level timing and recovery metrics. Adds edge traversal tracking,
+  MTTR calculation, node execution timing hooks, and state consistency checking. Integration
+  tests validate metrics across multi-node scenarios. All metrics tasks depend on Phase 1 state
+  infrastructure but are otherwise independent.
+
+  ### Phase 3: Node Selection (5 hours, tasks 3-1 to 3-4)
+
+  Adds flexibility to node targeting without code changes. Regex patterns, tag-based selection,
+  and enhanced error messages. These tasks are relatively independent from Phases 1-2 (use
+  existing wrapping API) but provide critical UX improvements for the testing workflow.
+
+  ### Phase 4: Async & Concurrency (10 hours, tasks 4-1 to 4-6)
+
+  Brings the wrapper to production-ready status by supporting async nodes and concurrent execution.
+  Separate async proxy, thread-safe metrics, timestamp-based correlation. Most complex phase but
+  critical for modern LangGraph patterns. Depends on earlier phases for state/metrics infrastructure.
+
+  ### Phase 5: Testing & Documentation (9 hours, tasks 5-1 to 5-12)
+
+  Validates the entire implementation through comprehensive testing (unit, integration, property-based,
+  performance) and production documentation. Achieves >85% coverage target, confirms <5% performance
+  overhead, validates success criteria, and provides integration guide with examples.
+  This phase uncovers bugs and gaps in earlier phases — iterations expected.
+
+  ### Task Dependency Graph
+
+  ```
+  Phase 1: State Infrastructure (foundational)
+    └─→ task-1-1: StateSnapshot
+    └─→ task-1-2: StateSnapshotManager (→ 1-1)
+    └─→ task-1-3: Field-level corruption
+    └─→ task-1-4: Snapshot capture in proxy (→ 1-2, 1-3)
+    └─→ task-1-5: Snapshot accuracy tests (→ 1-4)
+
+  Phase 2: Metrics (depends on Phase 1)
+    └─→ task-2-1: Edge metrics
+    └─→ task-2-2: MTTR calculation
+    └─→ task-2-3: Node timing (→ 2-1)
+    └─→ task-2-4: Consistency checking (→ 2-3)
+    └─→ task-2-5: Integration tests (→ 2-4)
+
+  Phase 3: Node Selection (independent, parallel to 2)
+    └─→ task-3-1: Regex matching
+    └─→ task-3-2: Tag selection
+    └─→ task-3-3: Validation (→ 3-1, 3-2)
+    └─→ task-3-4: Integration tests (→ 3-3)
+
+  Phase 4: Async & Concurrency (depends on 1-2)
+    └─→ task-4-1: Async proxy (→ 1-4)
+    └─→ task-4-2: Async detection (→ 4-1)
+    └─→ task-4-3: Thread-safe metrics (→ 2-1)
+    └─→ task-4-4: Timestamp correlation (→ 4-3)
+    └─→ task-4-5: Async tests (→ 4-4)
+    └─→ task-4-6: Concurrent tests (→ 4-5)
+
+  Phase 5: Testing & Documentation (depends on 1-4)
+    └─→ task-5-1: Unit tests - corruption (→ 1-3)
+    └─→ task-5-2: Unit tests - retry (→ 2-2)
+    └─→ task-5-3: Integration - linear DAG (→ 2-5)
+    └─→ task-5-4: Integration - parallel (→ 4-6)
+    └─→ task-5-5: Integration - cycles (→ 5-4)
+    └─→ task-5-6: Property tests (→ 5-1)
+    └─→ task-5-7: Performance tests (→ 5-2)
+    └─→ task-5-8: Coverage validation (→ 5-7)
+    └─→ task-5-9: Package export (→ 5-1)
+    └─→ task-5-10: Documentation (→ 5-9)
+    └─→ task-5-11: Backward compatibility (→ 5-10)
+    └─→ task-5-12: Final validation (→ 5-11)
+  ```
+
+  ### Key Insights
+
+  1. **Phases 1-2 Sequential:** State infrastructure must be solid before metrics can be reliable.
+  2. **Phase 3 Parallel:** Node selection can progress in parallel with Phase 2 (independent feature).
+  3. **Phase 4 Dependent:** Async support depends on mature Phase 1 infrastructure.
+  4. **Phase 5 Integrative:** Testing reveals issues in earlier phases; allocate time for iterations.
+  5. **TDD Throughout:** Every code task includes RED-GREEN-REFACTOR cycle for quality assurance.
+
+  ### Success Indicators
+
+  - All 26 tasks completed with passing tests
+  - >85% code coverage (Phase 5)
+  - <5% performance overhead (Phase 5)
+  - All 14 success criteria from feature spec satisfied (Phase 5)
+  - Integration guide with examples (Phase 5)
+  - Zero regressions with existing LangGraph code (Phase 5)
+
+  ---
+
+  _Task breakdown finalized: 2026-03-15_
+  _Ready for implementation phase_

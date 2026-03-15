@@ -1,0 +1,327 @@
+# Implementation Plan (YAML)
+# High-level architecture and strategy for LangGraph wrapper enhancement
+
+name: joke-generator
+summary: >
+  Implementation plan for LangGraph wrapper with node-level chaos injection capabilities.
+  Enhances the existing LangGraphWrapper (v0.5.0) with field-level state corruption, edge timing metrics,
+  state snapshots, async support, and concurrent execution handling. Focuses on production-ready reliability
+  testing of complex LangGraph-based workflows with fine-grained control and comprehensive observability.
+
+relatedFeatures:
+  - Number 001 (Core BalaganAgent framework and CrewAI/AutoGen/LangChain wrappers)
+
+technologies:
+  - Python 3.10+
+  - LangGraph (>= 0.2.0)
+  - LangChain (>= 0.1.0)
+  - LangChain-Core (>= 0.1.0)
+  - pytest (>= 7.0)
+  - pytest-asyncio (>= 0.21)
+  - python-dotenv (>= 1.0.0)
+  - typing (built-in)
+  - dataclasses (built-in)
+  - asyncio (built-in)
+  - threading (built-in)
+  - copy (built-in)
+
+relatedLinks:
+  - https://python.langchain.com/docs/langgraph/
+  - https://langchain-ai.github.io/langgraph/
+
+phases:
+  - id: phase-1
+    name: 'State Management & Field-Level Corruption'
+    description: >
+      Establish foundation for state snapshots and field-level state corruption.
+      Implement StateSnapshot dataclass with deep copy semantics. Extend ContextCorruptionInjector
+      to support field-level targeting. This phase enables precise state corruption debugging
+      and provides the observability infrastructure needed for subsequent phases.
+    parallel: false
+
+  - id: phase-2
+    name: 'Metrics Enhancement & Edge Timing'
+    description: >
+      Extend metrics collection with edge traversal timing and MTTR tracking.
+      Implement edge-level metrics alongside node-level timing. Add state mutation size tracking
+      and recovery attempt recording. This phase provides comprehensive observability of both
+      node execution and graph control flow.
+    parallel: false
+
+  - id: phase-3
+    name: 'Node Selection & Dynamic Control'
+    description: >
+      Enhance node targeting with regex patterns and tag-based selection.
+      Pre-compile patterns and cache at wrapper initialization. Add validation and error messages.
+      This phase enables focused testing of specific nodes without code changes.
+    parallel: false
+
+  - id: phase-4
+    name: 'Async Support & Concurrent Execution'
+    description: >
+      Add comprehensive async node handling and thread-safe concurrent metrics.
+      Create LangGraphNodeProxyAsync for async functions. Implement timestamp-based correlation
+      for concurrent node execution. This phase ensures realistic handling of modern LangGraph patterns.
+    parallel: false
+
+  - id: phase-5
+    name: 'Testing, Integration & Documentation'
+    description: >
+      Comprehensive test coverage (>85%), integration tests for multi-node scenarios,
+      and production documentation. Write unit tests per injector type, integration tests
+      for DAGs and cycles, property-based tests for reproducibility. Document node selection,
+      state corruption scenarios, and metrics interpretation.
+    parallel: false
+
+filesToCreate:
+  - tests/test_langgraph_wrapper_enhancements.py
+
+filesToModify:
+  - balaganagent/wrappers/langgraph.py
+  - balaganagent/injectors/context.py
+  - balaganagent/metrics/collector.py
+  - balaganagent/metrics/mttr.py
+  - balaganagent/__init__.py
+  - docs/integrations/langgraph.md
+  - tests/test_langgraph_wrapper.py
+
+openQuestions: []
+
+content: |
+  ## Architecture Overview
+
+  The LangGraph wrapper enhancement builds on the existing composition-based architecture
+  established by BalaganAgent. The wrapper operates at two key interception points:
+
+  1. **Node-level execution:** LangGraphNodeProxy wraps individual graph nodes to inject faults
+     at the computation level while preserving graph topology
+  2. **Tool-level execution:** LangGraphToolProxy wraps tool calls within nodes to inject tool-specific faults
+
+  The implementation follows the established pattern: **Wrapper → NodeProxy/ToolProxy → ChaosEngine → Injectors → Metrics**.
+
+  ### Key Design Principles
+
+  - **Composition over Inheritance:** Proxies compose injectors rather than inherit, enabling flexible mixing
+  - **Observable Chaos:** All fault injections are recorded with metadata for post-execution analysis
+  - **Field-Level Precision:** State corruption targets specific fields, not entire objects, enabling precise debugging
+  - **Snapshot-Driven Analysis:** Before/after state snapshots enable understanding of state mutations
+  - **Thread-Safe Metrics:** Concurrent node execution uses proper synchronization primitives
+  - **Async-Native:** Separate async proxies maintain proper async context and timing accuracy
+  - **Reusable Injectors:** Existing injector types (tool_failure, delay, hallucination, context, budget) work
+    unchanged at node level via new field-targeting capabilities
+
+  ### Integration with Existing Architecture
+
+  ```
+  LangGraphWrapper
+    ├─→ LangGraphNodeProxy (sync nodes)
+    │    └─→ ChaosEngine
+    │         └─→ Injectors (with field-targeting capability)
+    │              └─→ MetricsCollector (enhanced with edge/node timing)
+    │
+    ├─→ LangGraphNodeProxyAsync (async nodes)
+    │    └─→ ChaosEngine (async-aware)
+    │         └─→ Injectors
+    │              └─→ MetricsCollector (async-safe)
+    │
+    └─→ StateSnapshot Manager
+         └─→ Field-level corruption targeting
+  ```
+
+  The wrapper enhances the existing framework without requiring changes to core ChaosEngine or injector protocols.
+  State corruption is extended via new parameters to ContextCorruptionInjector; metrics are extended via new
+  event types in MetricsCollector; node selection is enhanced with pattern matching but uses same wrapping API.
+
+  ## Key Design Decisions
+
+  ### 1. Field-Level State Corruption (from research decision #1)
+
+  **Decision:** Implement field-level targeting with dataclass field introspection.
+
+  **Rationale:**
+  - Aligns with "fine-grained control" requirement in feature summary
+  - Enables precise debugging: isolate which state element caused failure
+  - Mirrors how developers actually debug state issues in real graphs
+  - Reproducible: same seed produces same field corruption
+  - Safe: internal control flow fields can be excluded from corruption
+
+  **Implementation Approach:**
+  - Inspect state TypedDict or dataclass fields at wrapper init time (cache)
+  - Allow users to specify target fields: `wrap_node("agent", target_fields=["messages", "context"])`
+  - Deep copy state, modify only targeted fields using type-appropriate mutations
+  - Preserve control flow fields (graph routing flags, internal counters)
+
+  ### 2. State Snapshots with Deep Copy Semantics (from research decision #2)
+
+  **Decision:** Always capture complete state snapshots before and after chaos injection.
+
+  **Rationale:**
+  - Debugging state corruption requires understanding what changed
+  - Framework philosophy emphasizes comprehensive observability (Observable Chaos)
+  - Memory overhead acceptable for test environments (100MB target limit)
+  - Enables audit trails, reproducible debugging, cascading failure analysis
+
+  **Implementation Approach:**
+  - Define `StateSnapshot` dataclass with: timestamp, node_name, state_before, state_after, fault_injected, field_targets
+  - Capture in node proxy when chaos is applied
+  - Store in node proxy with accessor method `get_state_snapshots()`
+  - Include in metrics for post-execution analysis
+  - Use deep copy (copy.deepcopy) for safety; optional compression for large states
+
+  ### 3. Automatic Node Retry with MTTR Tracking (from research decision #4)
+
+  **Decision:** Automatic retry within same execution with exponential backoff and MTTR measurement.
+
+  **Rationale:**
+  - Matches how LangGraph graphs naturally handle node failures in production
+  - Enables measurement of actual MTTR (mean time to recovery), not time to skip
+  - Supports cascading failure analysis when retries also fail
+  - Configurable max_retries prevents infinite loops
+
+  **Implementation Approach:**
+  - Define `NodeRetryConfig(max_retries=3, initial_delay=0.1, backoff_multiplier=2.0, max_delay=10.0)`
+  - On failure, retry same node with fresh state (unmodified input)
+  - Track retry count, delays, and recovery success in metrics
+  - Calculate MTTR = sum of retry delays + re-execution times
+
+  ### 4. Dynamic Node Selection (from research decision #5)
+
+  **Decision:** Support full dynamic selection with name, regex, and tag-based targeting.
+
+  **Rationale:**
+  - Enables focused testing of specific workflows without code changes
+  - Supports A/B testing different failure scenarios
+  - Provides flexibility promised in feature requirements
+
+  **Implementation Approach:**
+  - Exact match: `wrap_node("agent_node")`
+  - Regex pattern: `wrap_node("^tool_.*", is_regex=True)` with pre-compiled patterns
+  - Tag-based: `wrap_node(tags=["external_api"])` via node metadata
+  - Cache selection at wrapper init for O(1) matching at execution time
+
+  ### 5. Concurrent Execution with Thread-Safe Metrics (from research decision #6)
+
+  **Decision:** Thread-safe metrics collection using threading.Lock; timestamp-based correlation for concurrent operations.
+
+  **Rationale:**
+  - LangGraph supports parallel node execution; realistic failure scenarios require handling it
+  - Thread-safe synchronization primitives (Lock) manageable given existing architecture
+  - Timestamp-based correlation enables rich analysis: concurrent failures, cascades, sync issues
+
+  **Implementation Approach:**
+  - Add `threading.RLock()` to MetricsCollector for metric writes
+  - Record node execution with thread_id and nanosecond-precision timestamp (time.time_ns())
+  - Aggregate metrics using time windows for concurrent operation detection
+  - No global locks on node execution (minimal contention)
+
+  ### 6. Edge Traversal Timing Metrics (from research decision #6 and #11)
+
+  **Decision:** Capture both node execution and edge traversal timing with detailed breakdown.
+
+  **Rationale:**
+  - Edge timing detects control flow anomalies caused by chaos injection
+  - Comprehensive observability supports analysis of graph efficiency impacts
+  - Follows "Observable Chaos" principle in framework architecture
+
+  **Implementation Approach:**
+  - Track: node_start, node_end, edge_start, edge_end per node transition
+  - Correlate edge delays with state mutations between nodes
+  - Calculate: traversal_delay_ms = edge_end - node_end (time between nodes)
+  - Implement via graph transition hooks in node proxy
+
+  ### 7. Async Node Support (from research decision #8)
+
+  **Decision:** Create separate LangGraphNodeProxyAsync for async node functions.
+
+  **Rationale:**
+  - Async nodes are critical in modern LangGraph (astream, ainvoke)
+  - Separate proxy maintains proper async context and timing accuracy
+  - Allows proper async fault injection (some faults may need async operations)
+
+  **Implementation Approach:**
+  - Detect node function type (sync vs async) at wrapper initialization
+  - Use separate proxy class for async: `LangGraphNodeProxyAsync`
+  - Use `asyncio.get_event_loop()` and `time.perf_counter()` for async timing
+  - Support async injectors where needed (delay, context corruption)
+
+  ## Implementation Strategy
+
+  ### Why This Ordering Matters
+
+  **Phase 1 (State Management)** comes first because:
+  - State snapshots are foundational to debugging chaos effects
+  - Field-level corruption is the core new capability
+  - All subsequent phases depend on state handling infrastructure
+  - Unblocks downstream phases that rely on snapshot data
+
+  **Phase 2 (Metrics)** follows naturally because:
+  - Enhanced metrics require snapshot infrastructure from Phase 1
+  - Edge timing depends on node execution hooks
+  - MTTR calculation uses retry tracking from Phase 1
+  - Provides observability needed for testing Phase 3+
+
+  **Phase 3 (Node Selection)** enables advanced control:
+  - Builds on existing wrapping infrastructure
+  - No dependencies on Phases 1-2 (uses standard wrapping API)
+  - Can proceed in parallel with Phase 2 if needed
+  - Prerequisite for comprehensive testing in Phase 5
+
+  **Phase 4 (Async & Concurrency)** addresses modern patterns:
+  - Requires mature Phase 1 for state handling in async context
+  - Builds on Phase 2 metrics for proper async timing
+  - Critical for production-realistic LangGraph workflows
+  - Relatively isolated, can be done after Phases 1-2 complete
+
+  **Phase 5 (Testing & Docs)** validates everything:
+  - All infrastructure must be in place before comprehensive testing
+  - Tests validate Phases 1-4 work together correctly
+  - Documentation finalizes API and integration patterns
+  - Phase 5 drives discovery of bugs/gaps in earlier phases
+
+  ### Effort Distribution
+
+  - **Phase 1:** ~8 hours (state infrastructure is foundational)
+  - **Phase 2:** ~6 hours (extends metrics, moderate complexity)
+  - **Phase 3:** ~4 hours (pattern matching, well-understood problem)
+  - **Phase 4:** ~10 hours (async/concurrency is complex)
+  - **Phase 5:** ~12 hours (comprehensive testing and documentation)
+
+  Total estimated: **40 hours** (~5 days focused development)
+
+  ### Success Criteria (from feature spec)
+
+  The implementation must satisfy all success criteria in feature spec:
+
+  - [ ] Node-level chaos injection with field-level state corruption
+  - [ ] Edge traversal timing captured and reported
+  - [ ] State snapshots (before/after) accessible via metrics API
+  - [ ] Automatic node retry with recovery time tracking
+  - [ ] Dynamic node selection (name, regex, tag-based)
+  - [ ] Concurrent node execution without race conditions
+  - [ ] All injector types work at node level (tool_failure, delay, hallucination, context, budget)
+  - [ ] Metrics include node MTTR, edge time, state consistency
+  - [ ] Test coverage >85% of wrapper code paths
+  - [ ] Integration tests for multi-node DAGs, parallel execution, state corruption, recovery
+  - [ ] LangGraph integration guide with working examples
+  - [ ] LangGraphWrapper exported from balaganagent.__init__.py
+  - [ ] Backward compatibility maintained
+  - [ ] Performance impact <5% on baseline execution without chaos
+
+  ## Risk Mitigation
+
+  | Risk | Probability | Impact | Mitigation |
+  | ---- | ----------- | ------ | ---------- |
+  | State snapshots memory explosion (large states) | Medium | High | Implement snapshot compression/sampling for states >50MB; document memory limits; provide opts to disable snapshots for memory-constrained environments |
+  | Async/concurrent race conditions in metrics | Medium | High | Use threading.RLock for all metric writes; separate async vs sync proxies; comprehensive concurrency tests before Phase 5 |
+  | Infinite loops from chaos in cyclic graphs | Low | High | Implement configurable max_depth limit per cycle; track execution depth in addition to node count; raise TimeoutError if exceeded |
+  | Performance regression >5% target | Medium | Medium | Profile overhead in baseline (no chaos) execution; optimize field introspection (cache); compile regex patterns once; benchmark early |
+  | Async timing accuracy issues | Low | Medium | Use time.perf_counter() for elapsed time (not time.time()); separate async timing logic; test against known async durations |
+  | Node selection regex matches nothing | Low | Low | Validate patterns at wrapper init; warn if no nodes matched; provide list of available nodes in error message |
+  | Field corruption breaks graph execution | Medium | High | Whitelist safe-to-corrupt fields at init; exclude control flow fields; validate state schema before corruption; test state consistency after injection |
+  | Backward compatibility broken | Low | High | Preserve existing LangGraphWrapper API; enhancements are additions, not changes to existing methods; test with v0.5.0 examples |
+  | Integration test flakiness (concurrency) | Medium | Medium | Use deterministic test ordering; seed RNG for reproducibility; add retry logic to flaky tests; profile for timing issues |
+
+  ---
+
+  _Implementation plan created: 2026-03-15_
+  _Ready for task breakdown and development_
