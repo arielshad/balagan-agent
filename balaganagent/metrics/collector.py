@@ -7,6 +7,42 @@ from typing import Any, Optional
 
 
 @dataclass
+class ConsistencyViolation:
+    """Record of a state consistency violation."""
+
+    timestamp: float
+    node_name: str
+    violation_type: str
+    details: str
+
+    def __repr__(self) -> str:
+        """Return a readable representation."""
+        return f"ConsistencyViolation({self.node_name}, {self.violation_type}: {self.details})"
+
+
+@dataclass
+class EdgeTraversalEvent:
+    """Record of an edge traversal between nodes."""
+
+    source_node: str
+    target_node: str
+    traversal_start: float
+    traversal_end: Optional[float] = None
+
+    @property
+    def delay_ms(self) -> float:
+        """Get traversal delay in milliseconds."""
+        if self.traversal_end is None:
+            return 0.0
+        return (self.traversal_end - self.traversal_start) * 1000
+
+    @property
+    def edge_id(self) -> str:
+        """Get edge identifier as source->target."""
+        return f"{self.source_node}->{self.target_node}"
+
+
+@dataclass
 class MetricPoint:
     """A single metric data point."""
 
@@ -119,12 +155,21 @@ class MetricsCollector:
     - Recovery times
     - Retry counts
     - Fault injection rates
+    - Edge traversal timing (between nodes)
+    - State mutation sizes
     """
 
     def __init__(self):
         self._series: dict[str, MetricSeries] = {}
         self._counters: dict[str, int] = {}
         self._start_time = time.time()
+
+        # Edge traversal tracking
+        self._edge_traversals: list[EdgeTraversalEvent] = []
+
+        # State consistency tracking
+        self._consistency_violations: list[ConsistencyViolation] = []
+        self._state_schemas: dict[str, set[str]] = {}  # Track expected fields per node
 
         # Initialize standard metrics
         self._init_standard_metrics()
@@ -225,6 +270,265 @@ class MetricsCollector:
             },
         )
 
+    def record_edge_traversal_start(self, source_node: str, target_node: str) -> float:
+        """Record the start of an edge traversal and return the timestamp.
+
+        Args:
+            source_node: Name of the source node
+            target_node: Name of the target node
+
+        Returns:
+            The traversal start timestamp
+        """
+        start_time = time.time()
+        self.increment(f"edge_traversals_{source_node}_to_{target_node}")
+        self.increment("edge_traversals_total")
+        return start_time
+
+    def record_edge_traversal_end(
+        self,
+        source_node: str,
+        target_node: str,
+        traversal_start: float,
+        state_mutation_size: int = 0,
+    ) -> None:
+        """Record the end of an edge traversal.
+
+        Args:
+            source_node: Name of the source node
+            target_node: Name of the target node
+            traversal_start: The traversal start timestamp
+            state_mutation_size: Size of state changes between nodes in bytes
+        """
+        event = EdgeTraversalEvent(
+            source_node=source_node,
+            target_node=target_node,
+            traversal_start=traversal_start,
+            traversal_end=time.time(),
+        )
+        self._edge_traversals.append(event)
+
+        # Record edge delay metric
+        self.record(
+            "edge_delay_ms",
+            event.delay_ms,
+            {
+                "source": source_node,
+                "target": target_node,
+            },
+        )
+
+        # Record state mutation size if provided
+        if state_mutation_size > 0:
+            self.record(
+                "state_mutation_size_bytes",
+                state_mutation_size,
+                {
+                    "source": source_node,
+                    "target": target_node,
+                },
+            )
+
+    def get_edge_metrics(self) -> dict[str, Any]:
+        """Get edge traversal metrics.
+
+        Returns:
+            Dictionary with edge traversal statistics including delay and mutation sizes
+        """
+        if not self._edge_traversals:
+            return {
+                "total_edge_traversals": 0,
+                "edges": {},
+            }
+
+        edges_by_id: dict[str, list[EdgeTraversalEvent]] = {}
+        for event in self._edge_traversals:
+            if event.edge_id not in edges_by_id:
+                edges_by_id[event.edge_id] = []
+            edges_by_id[event.edge_id].append(event)
+
+        edge_stats = {}
+        for edge_id, events in edges_by_id.items():
+            delays_ms = [e.delay_ms for e in events]
+            edge_stats[edge_id] = {
+                "traversal_count": len(events),
+                "delay_ms": {
+                    "mean": statistics.mean(delays_ms) if delays_ms else 0.0,
+                    "min": min(delays_ms) if delays_ms else 0.0,
+                    "max": max(delays_ms) if delays_ms else 0.0,
+                    "median": statistics.median(delays_ms) if delays_ms else 0.0,
+                    "stdev": statistics.stdev(delays_ms) if len(delays_ms) > 1 else 0.0,
+                },
+            }
+
+        return {
+            "total_edge_traversals": len(self._edge_traversals),
+            "edges": edge_stats,
+        }
+
+    def get_edge_traversals(self) -> list[EdgeTraversalEvent]:
+        """Get all recorded edge traversal events.
+
+        Returns:
+            List of EdgeTraversalEvent objects
+        """
+        return self._edge_traversals.copy()
+
+    def get_edge_traversals_between(
+        self, source_node: str, target_node: str
+    ) -> list[EdgeTraversalEvent]:
+        """Get all traversals for a specific edge.
+
+        Args:
+            source_node: Source node name
+            target_node: Target node name
+
+        Returns:
+            List of traversal events for this edge
+        """
+        return [
+            e
+            for e in self._edge_traversals
+            if e.source_node == source_node and e.target_node == target_node
+        ]
+
+    def validate_state_schema(self, node_name: str, state: Any) -> None:
+        """Validate state schema consistency for a node.
+
+        Establishes schema on first call, checks consistency on subsequent calls.
+
+        Args:
+            node_name: Name of the node
+            state: The state object to validate
+        """
+        if not isinstance(state, dict):
+            # Can't validate non-dict states easily
+            return
+
+        state_fields = set(state.keys())
+
+        # Establish schema on first call
+        if node_name not in self._state_schemas:
+            self._state_schemas[node_name] = state_fields
+            return
+
+        expected_fields = self._state_schemas[node_name]
+
+        # Check for new unexpected fields
+        new_fields = state_fields - expected_fields
+        if new_fields:
+            violation = ConsistencyViolation(
+                timestamp=time.time(),
+                node_name=node_name,
+                violation_type="unexpected_fields",
+                details=f"New fields appeared: {sorted(new_fields)}",
+            )
+            self._consistency_violations.append(violation)
+            self.increment("consistency_violations")
+
+        # Check for missing fields
+        missing_fields = expected_fields - state_fields
+        if missing_fields:
+            violation = ConsistencyViolation(
+                timestamp=time.time(),
+                node_name=node_name,
+                violation_type="missing_fields",
+                details=f"Fields disappeared: {sorted(missing_fields)}",
+            )
+            self._consistency_violations.append(violation)
+            self.increment("consistency_violations")
+
+    def check_state_mutation_reasonableness(
+        self, node_name: str, state_before: Any, state_after: Any
+    ) -> None:
+        """Check if state mutations are reasonable (e.g., collection sizes don't explode).
+
+        Args:
+            node_name: Name of the node
+            state_before: State before mutation
+            state_after: State after mutation
+        """
+        if not isinstance(state_before, dict) or not isinstance(state_after, dict):
+            return
+
+        for key in state_before:
+            if key not in state_after:
+                continue
+
+            before_val = state_before[key]
+            after_val = state_after[key]
+
+            # Check for explosive collection growth
+            if isinstance(before_val, (list, dict, str)):
+                before_size = len(before_val)
+                after_size = len(after_val)
+
+                # Flag if size increased by >10x
+                if before_size > 0 and after_size > before_size * 10:
+                    violation = ConsistencyViolation(
+                        timestamp=time.time(),
+                        node_name=node_name,
+                        violation_type="explosive_growth",
+                        details=f"Field '{key}': {before_size} -> {after_size} items (10x growth)",
+                    )
+                    self._consistency_violations.append(violation)
+                    self.increment("consistency_violations")
+
+    def get_consistency_violations(self) -> list[ConsistencyViolation]:
+        """Get all recorded consistency violations.
+
+        Returns:
+            List of ConsistencyViolation objects
+        """
+        return self._consistency_violations.copy()
+
+    def get_consistency_violations_for_node(self, node_name: str) -> list[ConsistencyViolation]:
+        """Get consistency violations for a specific node.
+
+        Args:
+            node_name: Name of the node
+
+        Returns:
+            List of violations for this node
+        """
+        return [v for v in self._consistency_violations if v.node_name == node_name]
+
+    def get_consistency_summary(self) -> dict[str, Any]:
+        """Get a summary of state consistency violations.
+
+        Returns:
+            Dictionary with:
+            - total_violations: Total number of violations
+            - violations_by_type: Count by violation type
+            - violations_by_node: Count by node
+            - recent_violations: Last 10 violations
+        """
+        violations_by_type: dict[str, int] = {}
+        violations_by_node: dict[str, int] = {}
+
+        for violation in self._consistency_violations:
+            violations_by_type[violation.violation_type] = (
+                violations_by_type.get(violation.violation_type, 0) + 1
+            )
+            violations_by_node[violation.node_name] = (
+                violations_by_node.get(violation.node_name, 0) + 1
+            )
+
+        return {
+            "total_violations": len(self._consistency_violations),
+            "violations_by_type": violations_by_type,
+            "violations_by_node": violations_by_node,
+            "recent_violations": [
+                {
+                    "node": v.node_name,
+                    "type": v.violation_type,
+                    "details": v.details,
+                    "timestamp": v.timestamp,
+                }
+                for v in self._consistency_violations[-10:]
+            ],
+        }
+
     def get_summary(self) -> dict[str, Any]:
         """Get a summary of all collected metrics."""
         elapsed = time.time() - self._start_time
@@ -278,6 +582,9 @@ class MetricsCollector:
         self._series.clear()
         self._counters.clear()
         self._start_time = time.time()
+        self._edge_traversals.clear()
+        self._consistency_violations.clear()
+        self._state_schemas.clear()
         self._init_standard_metrics()
 
     def export_prometheus(self) -> str:

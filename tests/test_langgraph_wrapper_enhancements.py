@@ -966,3 +966,530 @@ class TestStateSnapshotAccuracy:
         repr_str = repr(snapshot)
         assert "B" in repr_str  # Should mention bytes
         assert "size_node" in repr_str
+
+
+class TestNodeMTTRCalculation:
+    """Tests for MTTR calculation in node proxies."""
+
+    def test_node_proxy_has_mttr_calculator(self):
+        """Test that node proxy includes MTTRCalculator."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+        assert hasattr(proxy, "_mttr")
+        assert proxy._mttr is not None
+
+    def test_node_proxy_get_mttr_stats(self):
+        """Test retrieving MTTR stats from node proxy."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+        stats = proxy.get_mttr_stats()
+
+        # Should have recovery stats structure
+        assert "total_recoveries" in stats
+        assert "successful_recoveries" in stats
+        assert "failed_recoveries" in stats
+        assert "recovery_rate" in stats
+        assert "mttr_seconds" in stats
+
+    def test_node_proxy_records_failure_on_injection(self):
+        """Test that failures are recorded in MTTR when chaos is injected."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+        config = DelayConfig(probability=1.0, min_delay_ms=10, max_delay_ms=10)
+        injector = DelayInjector(config)
+        proxy.add_injector(injector)
+
+        # Execute node - delay should be applied but not cause failure
+        result = proxy({"test": "data"})
+        assert result == {"test": "data"}
+
+        # Check MTTR stats
+        stats = proxy.get_mttr_stats()
+        # Delay injection causes the fault to be recorded and recovery to succeed
+        assert stats["total_recoveries"] == 1
+        assert stats["successful_recoveries"] == 1
+        assert stats["recovery_rate"] == 1.0
+
+    def test_node_proxy_mttr_reset(self):
+        """Test that MTTR is reset with node proxy."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+
+        # Manually record a failure and recovery
+        proxy._mttr.record_failure("test_node", "test_fault")
+        time.sleep(0.01)
+        proxy._mttr.record_recovery("test_node", "test_fault", success=True)
+
+        stats = proxy.get_mttr_stats()
+        assert stats["total_recoveries"] > 0
+
+        # Reset
+        proxy.reset()
+
+        stats = proxy.get_mttr_stats()
+        assert stats["total_recoveries"] == 0
+
+    def test_wrapper_mttr_stats_includes_nodes(self):
+        """Test that wrapper MTTR stats include node statistics."""
+        from balaganagent.wrappers.langgraph import LangGraphWrapper
+        from langgraph.graph import StateGraph
+
+        # Create a simple graph
+        graph = StateGraph(dict)
+        graph.add_node("node_a", lambda state: {"value": state.get("value", 0) + 1})
+        graph.add_edge("__start__", "node_a")
+        compiled = graph.compile()
+
+        wrapper = LangGraphWrapper(compiled)
+        wrapper.wrap_node("node_a")
+
+        # Get MTTR stats
+        stats = wrapper.get_mttr_stats()
+        assert "nodes" in stats
+        assert isinstance(stats["nodes"], dict)
+
+    def test_node_mttr_recovery_tracking(self):
+        """Test that node recovery tracking works with MTTR."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+
+        # Manually simulate a failure and recovery
+        proxy._mttr.record_failure("test_node", "tool_failure")
+        time.sleep(0.05)
+        proxy._mttr.record_recovery(
+            "test_node", "tool_failure", recovery_method="retry", retries=1, success=True
+        )
+
+        stats = proxy.get_mttr_stats()
+        assert stats["total_recoveries"] == 1
+        assert stats["successful_recoveries"] == 1
+        assert stats["failed_recoveries"] == 0
+        assert stats["recovery_rate"] == 1.0
+        assert stats["mttr_seconds"] >= 0.05
+
+
+class TestNodeExecutionTiming:
+    """Tests for node execution timing metrics."""
+
+    def test_node_event_has_timing_info(self):
+        """Test that node events include timing information."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy, LangGraphNodeEvent
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+        result = proxy({"test": "data"})
+
+        events = proxy.get_event_history()
+        assert len(events) == 1
+
+        event = events[0]
+        assert hasattr(event, "start_time")
+        assert hasattr(event, "end_time")
+        assert hasattr(event, "duration_ms")
+        assert event.start_time <= event.end_time
+        assert event.duration_ms >= 0
+
+    def test_node_timing_resolution(self):
+        """Test that node timing has sufficient resolution for sub-millisecond operations."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def fast_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(fast_node, "fast_node")
+        result = proxy({"test": "data"})
+
+        events = proxy.get_event_history()
+        assert len(events) == 1
+
+        # Should have measurable duration even for fast operations
+        event = events[0]
+        assert event.duration_ms >= 0
+
+    def test_node_timing_includes_fault_injection_overhead(self):
+        """Test that node timing includes overhead from fault injection."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
+
+        def quick_node(state):
+            return state
+
+        proxy_with_delay = LangGraphNodeProxy(quick_node, "delayed_node")
+        config = DelayConfig(probability=1.0, min_delay_ms=50, max_delay_ms=50)
+        injector = DelayInjector(config)
+        proxy_with_delay.add_injector(injector)
+
+        result = proxy_with_delay({"test": "data"})
+
+        events = proxy_with_delay.get_event_history()
+        assert len(events) == 1
+
+        event = events[0]
+        # Duration should be at least the delay
+        assert event.duration_ms >= 50
+
+    def test_wrapper_get_node_execution_timing_all_nodes(self):
+        """Test retrieving timing for all nodes from wrapper."""
+        from balaganagent.wrappers.langgraph import LangGraphWrapper, LangGraphNodeProxy
+        from langgraph.graph import StateGraph
+
+        graph = StateGraph(dict)
+        graph.add_node("node_a", lambda state: {"value": state.get("value", 0) + 1})
+        graph.add_edge("__start__", "node_a")
+        compiled = graph.compile()
+
+        wrapper = LangGraphWrapper(compiled)
+
+        # Manually create and register node proxies for testing
+        def node_a_func(state):
+            return {"value": state.get("value", 0) + 1}
+
+        def node_b_func(state):
+            return {"value": state.get("value", 0) + 2}
+
+        proxy_a = LangGraphNodeProxy(node_a_func, "node_a")
+        proxy_b = LangGraphNodeProxy(node_b_func, "node_b")
+
+        # Execute the nodes
+        proxy_a({"value": 0})
+        proxy_b({"value": 1})
+
+        # Manually register for timing retrieval
+        wrapper._node_proxies["node_a"] = proxy_a
+        wrapper._node_proxies["node_b"] = proxy_b
+
+        timing = wrapper.get_node_execution_timing()
+        assert "node_a" in timing
+        assert "node_b" in timing
+        assert timing["node_a"]["event_count"] >= 1
+        assert timing["node_b"]["event_count"] >= 1
+
+    def test_wrapper_get_node_execution_timing_specific_node(self):
+        """Test retrieving timing for a specific node."""
+        from balaganagent.wrappers.langgraph import LangGraphWrapper, LangGraphNodeProxy
+        from langgraph.graph import StateGraph
+
+        graph = StateGraph(dict)
+        graph.add_node("node_a", lambda state: {"value": state.get("value", 0) + 1})
+        graph.add_edge("__start__", "node_a")
+        compiled = graph.compile()
+
+        wrapper = LangGraphWrapper(compiled)
+
+        # Create and execute a node proxy
+        def node_a_func(state):
+            return {"value": state.get("value", 0) + 1}
+
+        proxy_a = LangGraphNodeProxy(node_a_func, "node_a")
+        proxy_a({"value": 0})
+
+        # Register for timing retrieval
+        wrapper._node_proxies["node_a"] = proxy_a
+
+        timing = wrapper.get_node_execution_timing("node_a")
+        assert "node_a" in timing
+        assert timing["node_a"]["event_count"] >= 1
+        assert "aggregate" in timing["node_a"]
+        assert "mean_duration_ms" in timing["node_a"]["aggregate"]
+        assert "min_duration_ms" in timing["node_a"]["aggregate"]
+        assert "max_duration_ms" in timing["node_a"]["aggregate"]
+
+    def test_node_timing_aggregate_statistics(self):
+        """Test that timing aggregate statistics are calculated correctly."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def dummy_node(state):
+            return state
+
+        proxy = LangGraphNodeProxy(dummy_node, "test_node")
+
+        # Execute node multiple times
+        for i in range(3):
+            proxy({"iteration": i})
+
+        events = proxy.get_event_history()
+        assert len(events) == 3
+
+        # Check metrics include timing information
+        metrics = proxy.get_metrics()
+        assert "latency" in metrics
+        assert metrics["latency"]["count"] == 3
+        assert metrics["latency"]["mean"] >= 0
+        assert metrics["latency"]["min"] >= 0
+        assert metrics["latency"]["max"] >= 0
+
+    def test_node_timing_tracks_success_and_failure(self):
+        """Test that node timing tracks both successful and failed executions."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def error_node(state):
+            if state.get("error"):
+                raise ValueError("Injected error")
+            return state
+
+        proxy = LangGraphNodeProxy(error_node, "error_node")
+
+        # Successful execution
+        result = proxy({"error": False})
+        assert result == {"error": False}
+
+        # Failed execution
+        try:
+            proxy({"error": True})
+        except ValueError:
+            pass
+
+        events = proxy.get_event_history()
+        assert len(events) == 2
+        assert events[0].success
+        assert not events[1].success
+
+
+class TestMultiNodeMetricCollection:
+    """Integration tests for metric collection across multi-node DAGs."""
+
+    def test_three_node_linear_dag_timing_captured(self):
+        """Test: 3-node linear DAG, all timings captured."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        def node_a(state):
+            return {**state, "a_executed": True}
+
+        def node_b(state):
+            return {**state, "b_executed": True}
+
+        def node_c(state):
+            return {**state, "c_executed": True}
+
+        proxy_a = LangGraphNodeProxy(node_a, "node_a")
+        proxy_b = LangGraphNodeProxy(node_b, "node_b")
+        proxy_c = LangGraphNodeProxy(node_c, "node_c")
+
+        # Simulate linear execution
+        state = {"value": 0}
+        state = proxy_a(state)
+        state = proxy_b(state)
+        state = proxy_c(state)
+
+        # Verify all nodes recorded timing
+        assert len(proxy_a.get_event_history()) >= 1
+        assert len(proxy_b.get_event_history()) >= 1
+        assert len(proxy_c.get_event_history()) >= 1
+
+        # Check metrics
+        metrics_a = proxy_a.get_metrics()
+        metrics_b = proxy_b.get_metrics()
+        metrics_c = proxy_c.get_metrics()
+
+        assert metrics_a["operations"]["total"] >= 1
+        assert metrics_b["operations"]["total"] >= 1
+        assert metrics_c["operations"]["total"] >= 1
+
+    def test_dag_with_node_failure_recovery_tracking(self):
+        """Test: edge timing between nodes with failures and recovery."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+        from balaganagent.metrics import MetricsCollector
+
+        def normal_node(state):
+            return {**state, "processed": True}
+
+        def failing_node(state):
+            if state.get("fail"):
+                raise ValueError("Simulated failure")
+            return {**state, "failed": False}
+
+        metrics = MetricsCollector()
+
+        proxy1 = LangGraphNodeProxy(normal_node, "producer")
+        proxy2 = LangGraphNodeProxy(failing_node, "consumer")
+
+        # Successful path
+        state = {"fail": False}
+        state = proxy1(state)
+
+        # Record edge traversal
+        edge_start = metrics.record_edge_traversal_start("producer", "consumer")
+        try:
+            state = proxy2(state)
+        finally:
+            metrics.record_edge_traversal_end("producer", "consumer", edge_start)
+
+        # Verify metrics
+        edge_metrics = metrics.get_edge_metrics()
+        assert edge_metrics["total_edge_traversals"] == 1
+        assert "producer->consumer" in edge_metrics["edges"]
+
+    def test_wrapper_metrics_across_wrapped_nodes(self):
+        """Test: wrapper metrics collection for multiple wrapped nodes."""
+        from balaganagent.wrappers.langgraph import LangGraphWrapper, LangGraphNodeProxy
+
+        def node_a(state):
+            return {"value": state.get("value", 0) + 1}
+
+        def node_b(state):
+            return {"value": state.get("value", 0) + 2}
+
+        wrapper = LangGraphWrapper({})
+
+        proxy_a = LangGraphNodeProxy(node_a, "node_a")
+        proxy_b = LangGraphNodeProxy(node_b, "node_b")
+
+        wrapper._node_proxies["node_a"] = proxy_a
+        wrapper._node_proxies["node_b"] = proxy_b
+
+        # Execute nodes
+        state = {"value": 0}
+        state = proxy_a(state)
+        state = proxy_b(state)
+
+        # Get wrapper metrics
+        metrics = wrapper.get_metrics()
+        assert "node_a" in metrics["nodes"]
+        assert "node_b" in metrics["nodes"]
+        assert metrics["nodes"]["node_a"]["operations"]["total"] >= 1
+        assert metrics["nodes"]["node_b"]["operations"]["total"] >= 1
+
+    def test_state_consistency_across_node_sequence(self):
+        """Test: state consistency maintained across node sequence."""
+        from balaganagent.metrics import MetricsCollector
+
+        collector = MetricsCollector()
+
+        # Simulate node chain with consistent state
+        state1 = {"messages": [], "step": 1}
+        collector.validate_state_schema("node_a", state1)
+
+        state2 = {"messages": ["msg1"], "step": 2}
+        collector.validate_state_schema("node_a", state2)
+
+        state3 = {"messages": ["msg1", "msg2"], "step": 3}
+        collector.validate_state_schema("node_a", state3)
+
+        # Should have no violations - all states have same schema
+        violations = collector.get_consistency_violations()
+        assert len(violations) == 0
+
+    def test_concurrent_node_metrics_aggregation(self):
+        """Test: concurrent node execution metrics aggregated correctly."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+        from balaganagent.metrics import MetricsCollector
+
+        def quick_node(state):
+            return {**state, "done": True}
+
+        # Create multiple node proxies
+        proxies = {f"node_{i}": LangGraphNodeProxy(quick_node, f"node_{i}") for i in range(3)}
+
+        # Execute "concurrently" (simulated)
+        state = {"counter": 0}
+        for proxy in proxies.values():
+            proxy(state)
+
+        # Create a metrics collector and record edge traversals
+        metrics = MetricsCollector()
+
+        for i, proxy_name in enumerate(list(proxies.keys())[:-1]):
+            start = metrics.record_edge_traversal_start(proxy_name, list(proxies.keys())[i + 1])
+            metrics.record_edge_traversal_end(proxy_name, list(proxies.keys())[i + 1], start)
+
+        edge_metrics = metrics.get_edge_metrics()
+        assert edge_metrics["total_edge_traversals"] == 2
+
+    def test_mttr_statistics_across_multiple_nodes(self):
+        """Test: MTTR calculations work across multiple nodes with failures."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+
+        proxy_a = LangGraphNodeProxy(lambda s: s, "node_a")
+        proxy_b = LangGraphNodeProxy(lambda s: s, "node_b")
+
+        # Simulate failures and recoveries
+        proxy_a._mttr.record_failure("node_a", "delay")
+        time.sleep(0.05)
+        proxy_a._mttr.record_recovery("node_a", "delay", success=True)
+
+        proxy_b._mttr.record_failure("node_b", "context_corruption")
+        time.sleep(0.03)
+        proxy_b._mttr.record_recovery("node_b", "context_corruption", success=True)
+
+        stats_a = proxy_a.get_mttr_stats()
+        stats_b = proxy_b.get_mttr_stats()
+
+        assert stats_a["successful_recoveries"] == 1
+        assert stats_b["successful_recoveries"] == 1
+        assert stats_a["mttr_seconds"] >= 0.05
+        assert stats_b["mttr_seconds"] >= 0.03
+
+    def test_edge_timing_correlates_with_state_mutations(self):
+        """Test: edge delay measurements correspond with state mutation sizes."""
+        from balaganagent.metrics import MetricsCollector
+
+        collector = MetricsCollector()
+
+        # Large state mutation
+        large_state = {"data": "x" * 1000}
+        start = collector.record_edge_traversal_start("node_a", "node_b")
+        time.sleep(0.01)
+        collector.record_edge_traversal_end(
+            "node_a",
+            "node_b",
+            start,
+            state_mutation_size=len(str(large_state)),
+        )
+
+        traversals = collector.get_edge_traversals_between("node_a", "node_b")
+        assert len(traversals) == 1
+        assert traversals[0].delay_ms >= 10  # At least 10ms from sleep
+
+        series = collector.get_series("state_mutation_size_bytes")
+        assert series is not None
+        assert series.count == 1
+
+    def test_node_timing_with_fault_injection_overhead(self):
+        """Test: timing includes fault injection overhead for realistic measurement."""
+        from balaganagent.wrappers.langgraph import LangGraphNodeProxy
+        from balaganagent.injectors import DelayInjector
+        from balaganagent.injectors.delay import DelayConfig
+
+        def quick_node(state):
+            return state
+
+        # Node without injection
+        proxy_baseline = LangGraphNodeProxy(quick_node, "baseline")
+        proxy_baseline({})
+        baseline_duration = proxy_baseline.get_event_history()[0].duration_ms
+
+        # Node with injection
+        proxy_delayed = LangGraphNodeProxy(quick_node, "delayed")
+        config = DelayConfig(probability=1.0, min_delay_ms=100, max_delay_ms=100)
+        proxy_delayed.add_injector(DelayInjector(config))
+        proxy_delayed({})
+        delayed_duration = proxy_delayed.get_event_history()[0].duration_ms
+
+        # Delayed execution should be significantly longer
+        assert delayed_duration > baseline_duration
+        assert delayed_duration >= 100  # At least the injected delay

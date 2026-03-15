@@ -424,6 +424,7 @@ class LangGraphNodeProxy:
         self._injectors: list[BaseInjector] = []
         self._event_history: list[LangGraphNodeEvent] = []
         self._metrics = MetricsCollector()
+        self._mttr = MTTRCalculator()
         self._snapshot_manager = snapshot_manager or StateSnapshotManager()
 
     @property
@@ -491,6 +492,7 @@ class LangGraphNodeProxy:
                     event.end_time = time.time()
                     event.error = f"Fault injected: {fault_type}"
                     self._event_history.append(event)
+                    self._mttr.record_failure(self._node_name, fault_type)
                     self._metrics.record_operation(
                         self._node_name,
                         event.duration_ms,
@@ -501,10 +503,23 @@ class LangGraphNodeProxy:
                         f"Chaos fault injected on node '{self._node_name}': {fault_type}"
                     )
 
+        fault_injected = None
         try:
             result = self._func(state)
             event.end_time = time.time()
             self._event_history.append(event)
+
+            # If a fault was injected but node succeeded after recovery, record recovery
+            if event.fault_injected:
+                fault_injected = event.fault_injected
+                self._mttr.record_recovery(
+                    self._node_name,
+                    fault_injected,
+                    recovery_method="retry",
+                    retries=0,
+                    success=True,
+                )
+
             self._metrics.record_operation(
                 self._node_name,
                 event.duration_ms,
@@ -522,6 +537,18 @@ class LangGraphNodeProxy:
             event.end_time = time.time()
             event.error = str(e)
             self._event_history.append(event)
+
+            # Record failed recovery if a fault was injected
+            if event.fault_injected:
+                fault_injected = event.fault_injected
+                self._mttr.record_recovery(
+                    self._node_name,
+                    fault_injected,
+                    recovery_method="retry",
+                    retries=0,
+                    success=False,
+                )
+
             self._metrics.record_operation(
                 self._node_name,
                 event.duration_ms,
@@ -536,6 +563,24 @@ class LangGraphNodeProxy:
     def get_metrics(self) -> dict[str, Any]:
         """Get node metrics summary."""
         return self._metrics.get_summary()
+
+    def get_mttr_stats(self) -> dict[str, Any]:
+        """Get MTTR (Mean Time To Recovery) statistics for this node.
+
+        Returns:
+            Dictionary with recovery statistics including:
+            - total_recoveries: Number of recovery events
+            - successful_recoveries: Count of successful recoveries
+            - failed_recoveries: Count of failed recoveries
+            - recovery_rate: Success rate (0-1)
+            - mttr_seconds: Mean time to recovery in seconds
+            - mttr_percentiles: p50, p90, p95, p99 recovery times
+            - mttr_by_fault_type: MTTR breakdown by fault type
+            - recovery_methods: Recovery method counts
+            - total_retries: Total retry attempts
+            - avg_retries_per_recovery: Average retries per recovery event
+        """
+        return self._mttr.get_recovery_stats()
 
     def get_state_snapshots(self) -> list[StateSnapshot]:
         """Get all state snapshots captured during node execution.
@@ -557,6 +602,7 @@ class LangGraphNodeProxy:
         """Reset node proxy state."""
         self._event_history.clear()
         self._metrics.reset()
+        self._mttr.reset()
         self._snapshot_manager.clear_snapshots()
 
 
@@ -978,14 +1024,90 @@ class LangGraphWrapper:
             "aggregate": self._metrics.get_summary(),
         }
 
+    def get_node_execution_timing(self, node_name: Optional[str] = None) -> dict[str, Any]:
+        """Get node execution timing details.
+
+        Args:
+            node_name: Optional specific node to get timing for. If None, returns all nodes.
+
+        Returns:
+            Dictionary with node execution timing including:
+            - For each node: list of execution events with start_time, end_time, duration_ms
+            - Aggregate timing statistics: mean, min, max, stdev per node
+        """
+        if node_name:
+            proxy = self._node_proxies.get(node_name)
+            if not proxy:
+                return {}
+
+            events = proxy.get_event_history()
+            if not events:
+                return {node_name: {"event_count": 0, "events": []}}
+
+            durations_ms = [e.duration_ms for e in events]
+            return {
+                node_name: {
+                    "event_count": len(events),
+                    "events": [
+                        {
+                            "start_time": e.start_time,
+                            "end_time": e.end_time,
+                            "duration_ms": e.duration_ms,
+                            "fault_injected": e.fault_injected,
+                            "success": e.success,
+                        }
+                        for e in events
+                    ],
+                    "aggregate": {
+                        "total_duration_ms": sum(durations_ms),
+                        "mean_duration_ms": sum(durations_ms) / len(durations_ms) if durations_ms else 0,
+                        "min_duration_ms": min(durations_ms) if durations_ms else 0,
+                        "max_duration_ms": max(durations_ms) if durations_ms else 0,
+                    },
+                }
+            }
+
+        # All nodes
+        timing_data = {}
+        for name, proxy in self._node_proxies.items():
+            events = proxy.get_event_history()
+            if events:
+                durations_ms = [e.duration_ms for e in events]
+                timing_data[name] = {
+                    "event_count": len(events),
+                    "events": [
+                        {
+                            "start_time": e.start_time,
+                            "end_time": e.end_time,
+                            "duration_ms": e.duration_ms,
+                            "fault_injected": e.fault_injected,
+                            "success": e.success,
+                        }
+                        for e in events
+                    ],
+                    "aggregate": {
+                        "total_duration_ms": sum(durations_ms),
+                        "mean_duration_ms": sum(durations_ms) / len(durations_ms) if durations_ms else 0,
+                        "min_duration_ms": min(durations_ms) if durations_ms else 0,
+                        "max_duration_ms": max(durations_ms) if durations_ms else 0,
+                    },
+                }
+
+        return timing_data
+
     def get_mttr_stats(self) -> dict[str, Any]:
-        """Get MTTR statistics for all tools."""
+        """Get MTTR statistics for all tools and nodes."""
         tool_stats = {}
         for name, proxy in self._tool_proxies.items():
             tool_stats[name] = proxy._mttr.get_recovery_stats()
 
+        node_stats = {}
+        for name, proxy in self._node_proxies.items():
+            node_stats[name] = proxy.get_mttr_stats()
+
         return {
             "tools": tool_stats,
+            "nodes": node_stats,
             "aggregate": self._mttr.get_recovery_stats(),
         }
 
