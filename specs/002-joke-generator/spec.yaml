@@ -1,0 +1,213 @@
+name: joke-generator
+number: 002
+branch: feat/002-joke-generator
+oneLiner: Add LangGraph wrapper with node-level chaos injection capabilities
+summary: >
+  Implement a comprehensive LangGraph wrapper for BalaganAgent that enables fault injection
+  at the node level during graph execution. This feature extends chaos engineering testing
+  to LangGraph-based workflows with fine-grained control over individual node failures,
+  state corruption, and recovery scenarios.
+phase: Analysis
+sizeEstimate: M
+
+relatedFeatures:
+  - Number 001 (Core BalaganAgent framework and CrewAI/AutoGen/LangChain wrappers)
+
+technologies:
+  - Python 3.10+
+  - LangGraph (graph-based agent framework)
+  - LangChain (core dependency for LangGraph)
+  - Chaos engineering patterns
+  - Fault injection mechanisms
+  - MTTR metrics collection
+  - Reliability scoring
+  - pytest for testing
+  - python-dotenv for configuration
+
+relatedLinks: []
+
+openQuestions: []
+
+content: |
+  ## Problem Statement
+
+  BalaganAgent is a chaos engineering framework for AI agents that enables stress-testing through controlled fault injection.
+  Currently it provides wrappers for CrewAI, AutoGen, and LangChain agents. The framework is missing support for LangGraph,
+  which is an increasingly popular framework for building complex, stateful agent workflows using a graph-based execution model.
+
+  LangGraph differs from other agent frameworks in that it explicitly models workflows as directed graphs with nodes and edges,
+  requiring a different approach to chaos injection compared to sequential task-based frameworks. This feature will add
+  comprehensive LangGraph support with node-level granularity for fault injection.
+
+  ## Codebase Analysis
+
+  ### Project Structure
+
+  **Root Directory Layout:**
+  ```
+  /balaganagent/
+  ├── __init__.py           # Main package exports
+  ├── engine.py             # Core ChaosEngine implementation
+  ├── wrapper.py            # Agent and ToolProxy classes
+  ├── experiment.py         # Experiment definitions and results
+  ├── runner.py             # ScenarioRunner and ExperimentRunner
+  ├── reporting.py          # Report generation (terminal, JSON, markdown, HTML)
+  ├── cli.py                # Command-line interface
+  ├── verbose.py            # Logging utilities
+  ├── hooks/                # Hook system for chaos integration
+  ├── injectors/            # Fault injection implementations
+  │   ├── base.py           # BaseInjector protocol
+  │   ├── tool_failure.py   # Tool failure modes
+  │   ├── delay.py          # Latency injection
+  │   ├── hallucination.py  # Data corruption
+  │   ├── context.py        # Context/state corruption
+  │   └── budget.py         # Budget exhaustion
+  ├── metrics/              # Metrics collection
+  │   ├── collector.py      # MetricsCollector
+  │   ├── mttr.py           # MTTR calculation
+  │   ├── recovery.py       # Recovery quality metrics
+  │   └── reliability.py    # Reliability scoring
+  └── wrappers/             # Framework-specific integrations
+      ├── crewai.py         # CrewAI agent wrapper
+      ├── autogen.py        # AutoGen agent wrapper
+      ├── langchain.py      # LangChain agent wrapper
+      ├── langgraph.py      # LangGraph wrapper (TARGET - currently exists)
+      ├── claude_sdk.py     # Claude Agent SDK wrapper
+      ├── claude_sdk_client.py
+      └── claude_sdk_hooks.py
+
+  /tests/
+  ├── test_engine.py
+  ├── test_injectors.py
+  ├── test_crewai_wrapper.py
+  ├── test_langgraph_wrapper.py  # LangGraph-specific tests
+  ├── test_langchain_wrapper.py
+  ├── test_autogen_wrapper.py
+  ├── test_claude_sdk_wrapper.py
+  └── e2e/                       # End-to-end tests
+  ```
+
+  ### Architecture Patterns
+
+  **Core Design Principles:**
+  1. **Composition over Inheritance:** Wrappers compose fault injectors rather than inherit from base classes
+  2. **Tool-Level Interception:** Chaos injection happens at the tool/function call level
+  3. **Metrics Collection:** All chaos events are recorded for analysis (MTTR, recovery quality, reliability scores)
+  4. **Framework Agnostic:** Core engine is framework-agnostic; wrappers adapt it to specific frameworks
+  5. **Observable Chaos:** All injected faults are recorded with metadata for debugging
+
+  **Dependency Flow:**
+  ```
+  Wrapper (CrewAI/LangGraph/etc)
+    └─> ToolProxy / NodeProxy (tool interception layer)
+        └─> ChaosEngine (core chaos logic)
+            └─> Injectors (tool_failure, delay, hallucination, context, budget)
+                └─> Metrics/MTTR calculators (observability)
+  ```
+
+  **Key Abstractions:**
+  - `BaseInjector`: Protocol for all fault injectors (must implement `inject()` method)
+  - `ChaosEngine`: Orchestrates which injectors to apply and at what frequency
+  - `MetricsCollector`: Records all operations, successes, failures, latencies
+  - `MTTRCalculator`: Tracks mean time to recovery for failed operations
+  - `AgentWrapper`: Generic wrapper around any agent with tools
+  - `ToolProxy`: Wraps individual tool functions to intercept calls
+  - `CrewAIWrapper`: CrewAI-specific wrapper handling agent/task introspection
+  - `LangGraphWrapper`: LangGraph-specific wrapper for node-level injection (TARGET)
+
+  ### Relevant Technologies
+
+  **Core Stack:**
+  - **Python 3.10+:** Type hints, async/await, dataclasses
+  - **pytest:** Test framework with async support via pytest-asyncio
+  - **python-dotenv:** Environment configuration for API keys
+
+  **Agent Framework Integrations:**
+  - **LangGraph (target):** Graph-based workflow execution with nodes and edges
+  - **LangChain:** Foundation library for tool definitions and chains
+  - **CrewAI:** Role-based multi-agent framework (existing wrapper)
+  - **AutoGen:** Microsoft's conversational agent framework (existing wrapper)
+  - **Claude Agent SDK:** Anthropic's agent framework (existing wrappers)
+
+  **Key LangGraph Concepts (relevant to implementation):**
+  - `StateGraph`: Base class for graph definitions
+  - `Nodes`: Represent computation steps
+  - `Edges`: Control flow between nodes
+  - `State`: Shared data structure passed between nodes
+  - `Compiled Graph`: Runtime-ready graph ready for execution
+  - Tool calling through LangChain's tool protocol
+
+  ### Existing LangGraph Wrapper Status
+
+  **Current State:** A LangGraph wrapper (`langgraph.py`) already exists in the codebase at v0.5.0
+  - Located at: `balaganagent/wrappers/langgraph.py`
+  - Contains ~26KB of implementation code
+  - Includes node-level chaos injection
+  - Has comprehensive test coverage in `test_langgraph_wrapper.py`
+  - Supports state corruption and recovery scenarios
+
+  **This means the feature may be:**
+  - Already partially/fully implemented and needs documentation/testing refinement
+  - Needing enhancement or bug fixes
+  - Requiring integration improvements
+
+  ## Affected Areas
+
+  | Area | Impact | Reasoning |
+  | ---- | ------ | --------- |
+  | `balaganagent/wrappers/langgraph.py` | High | Core wrapper implementation for LangGraph nodes - may need enhancements or fixes |
+  | `balaganagent/injectors/*.py` | Medium | May need new injector types specific to stateful graph execution (state edge corruption, node sequencing failures) |
+  | `balaganagent/metrics/` | Medium | Graph-specific metrics needed (node recovery time, state consistency checks, edge traversal timing) |
+  | `tests/test_langgraph_wrapper.py` | High | Comprehensive testing of node-level chaos scenarios, state corruption, recovery |
+  | `docs/integrations.md` | Medium | LangGraph integration guide and usage examples |
+  | `examples/` | Low | Example showing LangGraph agent with chaos injection |
+  | `README.md` | Low | Update main README with LangGraph support mention |
+  | `balaganagent/__init__.py` | Low | Export LangGraphWrapper if not already exported |
+
+  ## Dependencies
+
+  **External Dependencies:**
+  - `langgraph >= 0.2.0` (specified in pyproject.toml optional deps)
+  - `langchain >= 0.1.0` (core dependency)
+  - `langchain-core >= 0.1.0` (tool definitions)
+  - `python-dotenv >= 1.0.0` (env config)
+  - `pytest >= 7.0` (testing)
+  - `pytest-asyncio >= 0.21` (async test support)
+
+  **Internal Dependencies:**
+  - `ChaosEngine`: Core chaos orchestration
+  - `BaseInjector` and injector implementations: Fault injection logic
+  - `MetricsCollector` / `MTTRCalculator`: Observability
+  - `ExperimentConfig` / `Experiment` / `ExperimentResult`: Experiment tracking
+  - Existing wrapper patterns from `crewai.py`, `langchain.py`, `autogen.py`
+
+  ## Size Estimate
+
+  **M** (3-5 days) — Medium Complexity
+
+  **Reasoning:**
+  - **Existing Implementation:** LangGraph wrapper already exists, reducing greenfield work
+  - **Testing Required:** Comprehensive testing of node-level injection scenarios, state corruption, recovery patterns (high effort)
+  - **Documentation:** Integration guide, examples, API documentation needed
+  - **Metrics Enhancement:** May need graph-specific metrics (node-level MTTR, state consistency)
+  - **Complexity Factors:**
+    - Graph topology requires different test patterns than sequential agents
+    - State management and corruption scenarios are complex
+    - Node-level granularity requires careful test design
+    - Async execution in graphs adds concurrency complexity
+  - **Positive Factors:**
+    - Wrapper skeleton exists (reduces 40% of effort)
+    - Architecture follows established patterns from other wrappers
+    - Injector system is reusable without major changes
+    - Core metrics already implemented
+
+  **Estimated Breakdown:**
+  - Analysis & Planning: ~4 hours
+  - Testing (if needed improvements): ~8-12 hours
+  - Documentation & Examples: ~4-6 hours
+  - Code Review & Integration: ~2-3 hours
+  - Total: ~18-25 hours (3-4 days of focused work)
+
+  ---
+
+  _Analysis completed during research phase. Implementation readiness: Ready to proceed with detailed planning._
