@@ -7,7 +7,7 @@ summary: >
   at the node level during graph execution. This feature extends chaos engineering testing
   to LangGraph-based workflows with fine-grained control over individual node failures,
   state corruption, and recovery scenarios.
-phase: Analysis
+phase: Requirements
 sizeEstimate: M
 
 relatedFeatures:
@@ -15,29 +15,255 @@ relatedFeatures:
 
 technologies:
   - Python 3.10+
-  - LangGraph (graph-based agent framework)
-  - LangChain (core dependency for LangGraph)
+  - LangGraph (>= 0.2.0)
+  - LangChain (>= 0.1.0)
+  - LangChain-Core (>= 0.1.0)
   - Chaos engineering patterns
   - Fault injection mechanisms
   - MTTR metrics collection
   - Reliability scoring
+  - Node-level failure tracking
+  - State corruption detection
   - pytest for testing
+  - pytest-asyncio for async testing
   - python-dotenv for configuration
 
 relatedLinks: []
 
-openQuestions: []
+openQuestions:
+  - question: 'Should state corruption be applied to individual state fields or entire state objects?'
+    resolved: true
+    options:
+      - option: 'Field-level granularity'
+        description: 'Corrupt specific state fields (e.g., only the "context" field). Enables precise failure simulation and better debugging. Requires mapping fields before execution.'
+        selected: true
+      - option: 'Entire state objects'
+        description: 'Corrupt the complete state passed between nodes. Simpler to implement, but less granular - harder to isolate which field caused failures.'
+        selected: false
+    selectionRationale: 'Field-level granularity is recommended because it aligns with the goal of "fine-grained control" stated in the feature summary, enables precise debugging of which state elements cause failures, and mirrors how developers actually debug state issues in graph execution.'
+    answer: 'Field-level granularity'
+
+  - question: 'Should node-level metrics include edge traversal timing?'
+    resolved: true
+    options:
+      - option: 'Include edge timing'
+        description: 'Track transition time between nodes. Adds comprehensive observability but increases metric overhead and complexity.'
+        selected: true
+      - option: 'Node execution only'
+        description: 'Only track individual node execution times. Simpler metrics, lower overhead, but misses graph-level control flow issues.'
+        selected: false
+    selectionRationale: 'Edge timing should be included because it helps detect control flow anomalies caused by chaos injection, supports analysis of graph efficiency impacts, and follows the pattern of comprehensive observability established in the framework.'
+    answer: 'Include edge timing'
+
+  - question: 'Should node state snapshots be captured before/after chaos injection?'
+    resolved: true
+    options:
+      - option: 'Always capture snapshots'
+        description: 'Record state before and after injection. Excellent for debugging, full audit trail, but adds memory/performance overhead.'
+        selected: true
+      - option: 'Capture on failure only'
+        description: 'Only snapshot when injection causes failure. Lower overhead, but incomplete visibility into state changes.'
+        selected: false
+    selectionRationale: 'Always capturing snapshots is recommended because debugging state corruption requires understanding what changed, the framework is designed around observability, memory overhead is acceptable for test environments, and this aligns with the "Observable Chaos" principle in the architecture.'
+    answer: 'Always capture snapshots'
+
+  - question: 'How should recovery be verified after node failures?'
+    resolved: true
+    options:
+      - option: 'Automatic retry within same execution'
+        description: 'Automatically retry the failed node, capture recovery time. More realistic, matches actual agent behavior, easier to measure recovery.'
+        selected: true
+      - option: 'Manual external recovery'
+        description: 'Record failure and require external intervention. Cleaner separation of concerns but less practical for testing.'
+        selected: false
+    selectionRationale: 'Automatic retry is recommended because it simulates how LangGraph graphs naturally handle node failures, enables measurement of actual MTTR (mean time to recovery), and matches how users will actually run these graphs in production.'
+    answer: 'Automatic retry within same execution'
+
+  - question: 'Should the wrapper support dynamic node selection for chaos injection?'
+    resolved: true
+    options:
+      - option: 'Yes - full dynamic selection'
+        description: 'Allow specifying target nodes at runtime (by name, regex, or tag). Maximum flexibility but adds API complexity.'
+        selected: true
+      - option: 'No - static configuration only'
+        description: 'Inject chaos into all nodes or pre-configured list. Simpler API but less flexible for targeted testing.'
+        selected: false
+    selectionRationale: 'Dynamic selection is recommended because it enables focused testing of specific workflows, allows A/B testing different failure scenarios without code changes, and provides the "fine-grained control" promised in the feature summary.'
+    answer: 'Yes - full dynamic selection'
+
+  - question: 'Should concurrent node execution be considered when injecting chaos?'
+    resolved: true
+    options:
+      - option: 'Yes - with concurrency awareness'
+        description: 'Track concurrent execution, inject failures considering parallelism. More realistic but significantly more complex to implement and test.'
+        selected: true
+      - option: 'No - treat as sequential'
+        description: 'Inject chaos without considering node concurrency. Simpler but misses realistic failure scenarios in parallel workflows.'
+        selected: false
+    selectionRationale: 'Concurrency awareness should be included because LangGraph supports parallel node execution (a key feature), realistic failure scenarios require handling concurrent failures, and the complexity is manageable given the existing architecture.'
+    answer: 'Yes - with concurrency awareness'
 
 content: |
   ## Problem Statement
 
   BalaganAgent is a chaos engineering framework for AI agents that enables stress-testing through controlled fault injection.
-  Currently it provides wrappers for CrewAI, AutoGen, and LangChain agents. The framework is missing support for LangGraph,
+  Currently it provides wrappers for CrewAI, AutoGen, and LangChain agents. The framework is missing comprehensive support for LangGraph,
   which is an increasingly popular framework for building complex, stateful agent workflows using a graph-based execution model.
 
   LangGraph differs from other agent frameworks in that it explicitly models workflows as directed graphs with nodes and edges,
   requiring a different approach to chaos injection compared to sequential task-based frameworks. This feature will add
   comprehensive LangGraph support with node-level granularity for fault injection.
+
+  The existing implementation (v0.5.0) provides a foundation but requires completion, hardening, and comprehensive testing to ensure
+  production-ready reliability testing for LangGraph-based agents.
+
+  ## Success Criteria
+
+  - [ ] LangGraphWrapper successfully wraps LangGraph StateGraph instances with configurable chaos injection
+  - [ ] Node-level chaos injection works with field-level state corruption, allowing targeting specific state fields
+  - [ ] Edge traversal timing is captured and reported in metrics output
+  - [ ] State snapshots (before/after chaos) are captured and accessible via metrics API
+  - [ ] Automatic node retry mechanism functions correctly with recovery time tracking
+  - [ ] Dynamic node selection supports name-based, regex-based, and tag-based targeting
+  - [ ] Concurrent node execution is handled without race conditions in metrics/chaos injection
+  - [ ] All injector types (tool_failure, delay, hallucination, context, budget) work at node level
+  - [ ] Metrics collection includes node MTTR, edge traversal time, and state consistency checks
+  - [ ] Comprehensive test suite covers >85% of wrapper code paths
+  - [ ] Integration tests verify end-to-end workflows with multi-node graphs, state corruption, and recovery
+  - [ ] Documentation includes LangGraph-specific integration guide with working examples
+  - [ ] LangGraphWrapper is exported from balaganagent package __init__.py
+  - [ ] Backward compatibility maintained with existing core chaos engine and injectors
+  - [ ] Performance impact <5% on baseline graph execution without chaos
+
+  ## Functional Requirements
+
+  ### Core Wrapper Functionality
+
+  - **FR-1**: LangGraphWrapper must accept a compiled LangGraph StateGraph and return a wrapped version supporting chaos injection
+  - **FR-2**: Wrapper must maintain graph topology (nodes, edges, state schema) without modification
+  - **FR-3**: Chaos injection configuration must be supplied via ChaosConfig object with sensible defaults
+  - **FR-4**: Execution of wrapped graph must be transparent - users call graph.invoke() or graph.stream() without awareness of chaos injection
+
+  ### Node-Level Chaos Injection
+
+  - **FR-5**: Support node-level fault injection via all existing injector types: tool_failure, delay, hallucination, context, budget
+  - **FR-6**: Node selection mechanism must support: exact name matching, regex patterns, tag-based filtering
+  - **FR-7**: State corruption must operate at field level - users can specify which state fields are targeted for corruption
+  - **FR-8**: Chaos injection must not corrupt state fields used for internal control flow or graph execution
+  - **FR-9**: Failed nodes must automatically retry with configurable retry counts and backoff strategies
+  - **FR-10**: Concurrent node execution must be supported - chaos can be injected into nodes executing in parallel
+
+  ### State Management
+
+  - **FR-11**: State snapshots (complete state object) must be captured before and after node execution when chaos is injected
+  - **FR-12**: State snapshots must be accessible via results object for post-execution analysis
+  - **FR-13**: State corruption must be predictable and reproducible with same random seed
+
+  ### Metrics and Observability
+
+  - **FR-14**: Node-level execution time must be tracked (start, end, duration)
+  - **FR-15**: Edge traversal time must be measured (time between nodes, including control flow decisions)
+  - **FR-16**: Node MTTR (mean time to recovery) must be calculated for each node experiencing failures
+  - **FR-17**: State consistency checks must be performed - detect unexpected state mutations caused by chaos
+  - **FR-18**: Metrics must include: injection event timestamp, node name, injection type, recovery status, latency impact
+  - **FR-19**: All metrics must be accessible via standardized MetricsCollector interface
+
+  ### Configuration and Control
+
+  - **FR-20**: ChaosConfig must support enabling/disabling chaos at wrapper level
+  - **FR-21**: Per-node injection rates must be configurable (probability of injection per execution)
+  - **FR-22**: Injection parameters (delay duration, corruption severity, budget limits) must be settable per injector type
+  - **FR-23**: Random seed must be configurable for reproducible chaos injection
+  - **FR-24**: Wrapper must support experiment definition and execution via existing Experiment classes
+
+  ### Error Handling and Recovery
+
+  - **FR-25**: Node failures due to chaos injection must not crash the entire graph - failures must be containable
+  - **FR-26**: Recovery metadata must be recorded (retry count, recovery time, whether recovery succeeded)
+  - **FR-27**: Wrapper must gracefully handle edge cases: missing nodes, concurrent modifications, empty graphs
+
+  ## Non-Functional Requirements
+
+  ### Performance
+
+  - **NFR-1**: Baseline overhead of chaos injection (no faults) must be <5% compared to unwrapped graph
+  - **NFR-2**: Metrics collection overhead must be O(n) where n = number of nodes executed
+  - **NFR-3**: Memory usage for state snapshots must not exceed 100MB for typical 10MB state objects
+  - **NFR-4**: Graph execution with chaos must complete in <2x baseline time (reasonable for fault injection)
+
+  ### Reliability and Robustness
+
+  - **NFR-5**: Wrapper must handle graphs with 100+ nodes without degradation
+  - **NFR-6**: State snapshots must be deep copies - modifications to snapshots must not affect graph execution
+  - **NFR-7**: Concurrent node execution must use thread-safe metrics collection
+  - **NFR-8**: Chaos injection must be idempotent - same configuration must produce deterministic results with same seed
+
+  ### Maintainability
+
+  - **NFR-9**: Code must follow existing BalaganAgent patterns: composition over inheritance, tool-level interception
+  - **NFR-10**: Type hints must be comprehensive - 100% of public API must be typed
+  - **NFR-11**: All public methods must have docstrings following NumPy/Google style
+  - **NFR-12**: Code must pass mypy type checking with strict mode
+
+  ### Testing
+
+  - **NFR-13**: Test coverage must be >85% of wrapper code paths
+  - **NFR-14**: Integration tests must cover: single-node graphs, multi-node DAGs, cyclic graphs, parallel execution, state corruption scenarios
+  - **NFR-15**: All tests must use pytest with async support via pytest-asyncio
+  - **NFR-16**: Tests must complete in <60 seconds total
+
+  ### Compatibility
+
+  - **NFR-17**: Must support Python 3.10+
+  - **NFR-18**: Must work with LangGraph >= 0.2.0
+  - **NFR-19**: Must work with LangChain >= 0.1.0
+  - **NFR-20**: Must be compatible with all existing BalaganAgent injectors without modification
+
+  ### Documentation
+
+  - **NFR-21**: Integration guide must include quickstart example (LangGraph graph with chaos)
+  - **NFR-22**: Documentation must cover: node selection strategies, state corruption scenarios, metrics interpretation
+  - **NFR-23**: Examples must be runnable without external dependencies (mock agents acceptable)
+
+  ## Product Questions & AI Recommendations
+
+  | # | Question | AI Recommendation | Rationale |
+  | - | -------- | ----------------- | --------- |
+  | 1 | State corruption granularity (field-level vs entire objects)? | Field-level granularity | Matches "fine-grained control" in feature summary; enables precise debugging; allows users to target specific state elements |
+  | 2 | Include edge traversal timing in metrics? | Yes - include edge timing | Detects control flow anomalies; comprehensive observability; follows framework philosophy |
+  | 3 | Always capture state snapshots or only on failure? | Always capture snapshots | Required for proper debugging of state corruption; acceptable overhead in test environments; aligns with Observable Chaos principle |
+  | 4 | How to verify recovery after node failure? | Automatic retry with MTTR tracking | Realistic (matches production behavior); measurable (actual recovery time); useful (detects cascading failures) |
+  | 5 | Support dynamic node selection for chaos? | Yes - full dynamic selection | Enables focused testing; supports A/B comparison; provides flexibility promised in feature |
+  | 6 | Handle concurrent node execution in chaos injection? | Yes - with concurrency awareness | LangGraph supports parallelism; realistic failure scenarios; manageable complexity |
+
+  ## Test Strategy
+
+  ### Unit Tests
+
+  - Test LangGraphWrapper initialization with various graph configurations
+  - Test node selection (exact name, regex, tag-based)
+  - Test each injector type at node level
+  - Test state corruption field-level targeting
+  - Test retry mechanism with various retry counts
+  - Test metrics collection for individual nodes
+  - Test concurrent node execution without race conditions
+
+  ### Integration Tests
+
+  - Multi-node DAG execution with chaos injection
+  - Single-node graph with state corruption
+  - Parallel node execution with concurrent failures
+  - State snapshot accuracy before/after execution
+  - Recovery time measurement accuracy
+  - Edge traversal timing measurement
+  - Full experiment lifecycle with LangGraphWrapper
+
+  ### Performance Tests
+
+  - Baseline overhead measurement (wrapped vs unwrapped)
+  - State snapshot memory usage profiling
+  - Metrics collection overhead analysis
+  - Large graph (100+ nodes) execution
 
   ## Codebase Analysis
 
