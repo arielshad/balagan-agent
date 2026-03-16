@@ -1,0 +1,29 @@
+$ balaganagent timestamp --help
+usage: balaganagent timestamp [-h] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT, -o OUTPUT
+                        Output file path (default: timestamp.md)
+
+---
+
+$ balaganagent timestamp --output /tmp/test-timestamp.md
+Timestamp markdown file written to /tmp/test-timestamp.md
+
+---
+
+Generated file contents:
+# Timestamp
+
+Generated at: 2026-03-16T16:44:06Z
+
+---
+
+$ balaganagent timestamp -o /tmp/nested/dir/ts.md
+Timestamp markdown file written to /tmp/nested/dir/ts.md
+
+Generated file contents:
+# Timestamp
+
+Generated at: 2026-03-16T16:44:14Z
