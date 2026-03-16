@@ -1,0 +1,147 @@
+You are a senior software engineer implementing a change directly from a user request.
+
+## User Request
+
+add markdown file with the current timestamp
+
+## Implementation Instructions
+
+1. Implement the requested changes in the codebase
+2. Write tests for your changes where appropriate
+3. Run the test suite and fix any failures
+4. Run the linter and fix any issues
+5. Ensure the project builds successfully
+6. Do NOT commit, push, or create a PR — just make the code changes
+
+## Working Directory
+
+/Users/arielshadkhan/.REDACTED
+
+## Project Structure
+
+```
+.agents/
+  skills/
+.claude/
+  settings.json
+  skills/
+.entire/
+  .gitignore
+  settings.json
+.env.example
+.github/
+  ISSUE_TEMPLATE/
+  markdown-link-check-config.json
+  pull_request_template.md
+  workflows/
+.gitignore
+CHANGELOG.md
+CONTRIBUTING.md
+CREWAI_INTEGRATION_GUIDE.md
+CREWAI_QUICKREF.md
+DEVELOPMENT.md
+LICENSE
+README.md
+SECURITY.md
+agents.md
+balaganagent/
+  __init__.py
+  cli.py
+  engine.py
+  experiment.py
+  hooks/
+  injectors/
+  metrics/
+  reporting.py
+  runner.py
+  verbose.py
+  wrapper.py
+  wrappers/
+claude-agent-sdk-demos/
+  .claude/
+  .env.example
+  .gitignore
+  README.md
+  pyproject.toml
+  research_agent/
+docs/
+  assets/
+  cli.md
+  examples.md
+  faq.md
+  how-it-works.md
+  index.md
+  integrations.md
+  roadmap.md
+examples/
+  .env.example
+  Can't Wait to See You.mp3
+  GEMINI_SETUP.md
+  README.md
+  README_BALAGAN_RESEARCH_AGENT.md
+  __init__.py
+  balagan_research_agent_example.py
+  basic_usage.py
+  chaos_research_agent_example.py
+  claude_sdk_agent.py
+  claude_sdk_chaos_example.py
+  claude_sdk_research_agent.py
+  claude_sdk_research_chaos_example.py
+  claude_sdk_research_tools.py
+  crewai_gemini_chaos_example.py
+  crewai_gemini_research_agent.py
+  crewai_gemini_research_agent_diagrams.md
+  crewai_sdk_research_agent.py
+  langgraph_agent.py
+  meeting_notes_agent.py
+  scenarios/
+  stress_test.py
+  validate_gemini_key.py
+llms.txt
+mkdocs.yml
+ph-assets/
+  out/
+  package-lock.json
+  package.json
+  public/
+  remotion.config.ts
+  src/
+  tsconfig.json
+pyproject.toml
+reports/
+  report_AI_safety.md
+  report_machine_learning.md
+  report_quantum_computing.md
+specs/
+  000-timestamp-markdown-file/
+tests/
+  __init__.py
+  bdd/
+  e2e/
+  test_autogen_wrapper.py
+  test_chaos_hooks.py
+  test_claude_sdk_research_agent.py
+  test_claude_sdk_wrapper.py
+  test_crewai_gemini_agent.py
+  test_crewai_sdk_agent.py
+  test_crewai_sdk_stress.py
+  test_crewai_wrapper.py
+  test_engine.py
+  test_injectors.py
+  test_langchain_wrapper.py
+  test_langgraph_wrapper.py
+  test_meeting_notes_agent.py
+  test_meeting_notes_stress.py
+  test_metrics.py
+```
+
+## Constraints
+
+- Implement ONLY what the user requested — nothing more
+- Follow existing codebase conventions and patterns
+- Do NOT commit, push, or create pull requests
+- Do NOT modify any spec YAML files
+- Keep changes focused and minimal
+- Do NOT enter plan mode — implement directly without planning phases
+- Do NOT ask the user questions or use AskUserQuestion — make reasonable decisions and proceed
+- You MUST create or modify actual code files — a plan or summary alone is not acceptable output

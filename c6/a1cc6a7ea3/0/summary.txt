@@ -1,0 +1,15 @@
+Here's a summary of the changes:
+
+**`balaganagent/cli.py`** — Added a `timestamp` subcommand and `generate_timestamp()` function:
+- New `timestamp` CLI subcommand with `--output/-o` flag (defaults to `timestamp.md`)
+- `generate_timestamp()` writes a markdown file containing a `# Timestamp` header and the current UTC timestamp in ISO 8601 format
+
+**`tests/test_timestamp.py`** — 6 new tests covering:
+- File generation
+- Correct markdown header
+- ISO timestamp format validation
+- Parent directory creation
+- UTC time usage (with mocked datetime)
+- Overwriting existing files
+
+Usage: `balaganagent timestamp` or `balaganagent timestamp -o custom_path.md`
