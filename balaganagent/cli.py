@@ -4,6 +4,7 @@
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import __version__
@@ -134,6 +135,17 @@ def main():
         help="Directory to initialize",
     )
 
+    # Timestamp command
+    timestamp_parser = subparsers.add_parser(
+        "timestamp", help="Generate a markdown file with the current timestamp"
+    )
+    timestamp_parser.add_argument(
+        "--output",
+        "-o",
+        default="timestamp.md",
+        help="Output file path (default: timestamp.md)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "run":
@@ -144,6 +156,8 @@ def main():
         run_demo(args)
     elif args.command == "init":
         init_project(args)
+    elif args.command == "timestamp":
+        generate_timestamp(args)
     else:
         parser.print_help()
         sys.exit(1)
@@ -365,6 +379,19 @@ class SampleAgent:
     print("To run the sample scenario:")
     print(f"  cd {directory}")
     print("  balaganagent run scenarios/sample.json --agent agent:SampleAgent")
+
+
+def generate_timestamp(args):
+    """Generate a markdown file with the current timestamp."""
+    now = datetime.now(timezone.utc)
+    timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    content = f"# Timestamp\n\nGenerated at: {timestamp}\n"
+
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(content)
+    print(f"Timestamp markdown file written to {output_path}")
 
 
 def load_agent(agent_spec: str):
